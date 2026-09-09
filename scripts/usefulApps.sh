@@ -9,53 +9,16 @@
 # =======================================================
 set -uo pipefail
 
-RED="\033[0;31m"; GREEN="\033[0;32m"; YELLOW="\033[1;33m"; CYAN="\033[0;36m"; NC="\033[0m"
-
-log_info() { echo -e "${CYAN}[*]${NC} $1"; }
-log_ok()   { echo -e "${GREEN}[OK]${NC} $1"; }
-log_warn() { echo -e "${YELLOW}[!]${NC} $1"; }
-log_err()  { echo -e "${RED}[ERROR]${NC} $1"; }
-
-is_installed() {
-    dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -q "install ok installed"
-}
-
-ask() {
-    local prompt="$1" default="${2:-Y}" reply
-    local hint="(Y/n)"
-    [ "$default" = "N" ] && hint="(y/N)"
-    read -rp "$(echo -e "${YELLOW}${prompt} ${hint}: ${NC}")" reply
-    reply=${reply:-$default}
-    [[ "$reply" =~ ^[Yy]$ ]]
-}
-
-install_pkgs() {
-    local label="$1"; shift
-    local to_install=()
-    local pkg
-    for pkg in "$@"; do
-        is_installed "$pkg" || to_install+=("$pkg")
-    done
-    if [ "${#to_install[@]}" -eq 0 ]; then
-        log_ok "$label already installed."
-        return 0
-    fi
-    log_info "$label: installing ${to_install[*]}"
-    if sudo apt-get install -y "${to_install[@]}"; then
-        log_ok "$label installed."
-        return 0
-    else
-        log_warn "$label: some packages failed to install (continuing)."
-        return 1
-    fi
-}
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/common.sh
+source "$SCRIPT_DIR/lib/common.sh"
 
 echo -e "${CYAN}=========================================================${NC}"
 echo -e "${CYAN} Useful Apps${NC}"
 echo -e "${CYAN}=========================================================${NC}"
 
 log_info "Refreshing package lists..."
-sudo apt-get update || { log_err "apt-get update failed, aborting."; exit 1; }
+apt_update || { log_err "apt-get update failed, aborting."; exit 1; }
 
 if ask "Install VLC (media player)?"; then
     install_pkgs "VLC" vlc
@@ -77,7 +40,12 @@ if ask "Install VLC (media player)?"; then
 fi
 
 if ask "Install archive format support for Ark (7z, rar)?"; then
-    install_pkgs "Archive support" p7zip-full unrar-free
+    if check_repo_package unrar "non-free"; then
+        install_pkgs "Archive support" p7zip-full unrar
+    else
+        log_warn "unrar (non-free, creates RAR archives) not in your repos — using unrar-free (decompresses RAR only) instead."
+        install_pkgs "Archive support" p7zip-full unrar-free
+    fi
 fi
 
 if ask "Install Dolphin file/video thumbnailers (previews for media, docs, RAW photos)?"; then
@@ -118,8 +86,8 @@ if ask "Install TLP (laptop battery/power management)?" "N"; then
                 sudo tee /etc/tlp.d/60-battery-threshold.conf > /dev/null << EOF
 # Written by usefulApps.sh — charge threshold for ${BAT_NAME}.
 # Full-charge fans of 100% can delete this file and run: sudo tlp start
-START_CHARGE_THRESH_BAT0=75
-STOP_CHARGE_THRESH_BAT0=80
+START_CHARGE_THRESH_${BAT_NAME}=75
+STOP_CHARGE_THRESH_${BAT_NAME}=80
 EOF
                 sudo tlp start >/dev/null 2>&1 || true
                 log_ok "Charge capped at 80% (resumes below 75%). Edit /etc/tlp.d/60-battery-threshold.conf to change it."

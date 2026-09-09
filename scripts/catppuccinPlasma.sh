@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # =======================================================
-# Catppuccin Plasma — an alternative to fancyPlasma.sh's Darkly look
+# Catppuccin Plasma — the toolkit's theming step
 # -------------------------------------------------------
 # Catppuccin Mocha, Red accent — the same palette/identity used across
 # this toolkit's XFCE sibling project. Uses the OFFICIAL catppuccin/kde
 # Global Theme installer (github.com/catppuccin/kde) — prebuilt/pre-
-# rendered by their own CI (Whiskers), so unlike Darkly there's no
-# compile step here at all.
+# rendered by their own CI (Whiskers), so unlike a from-source KDE
+# theme there's no compile step here at all.
 #
 # catppuccin/kde's own install.sh handles Global Theme + colorscheme +
 # window decoration + cursor theme all in one documented, verified call
@@ -21,67 +21,12 @@
 #                                    the project's own install.sh warns
 #                                    has extra button-placement rules —
 #                                    Classic avoids that class of issue)
-#
-# THIS AND fancyPlasma.sh SET THE SAME THINGS (application style, color
-# scheme, window decoration) — they are alternatives, not additive.
-# Whichever you run LAST is the one that's actually active. Nothing
-# here uninstalls Darkly if you ran fancyPlasma.sh first; it just
-# doesn't stay applied once this runs.
 # =======================================================
 set -uo pipefail
 
-RED="\033[0;31m"; GREEN="\033[0;32m"; YELLOW="\033[1;33m"; CYAN="\033[0;36m"; NC="\033[0m"
-
-log_info() { echo -e "${CYAN}[*]${NC} $1"; }
-log_ok()   { echo -e "${GREEN}[OK]${NC} $1"; }
-log_warn() { echo -e "${YELLOW}[!]${NC} $1"; }
-log_err()  { echo -e "${RED}[ERROR]${NC} $1"; }
-
-is_installed() { dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -q "install ok installed"; }
-command_exists() { command -v "$1" >/dev/null 2>&1; }
-
-ask() {
-    local prompt="$1" default="${2:-Y}" reply
-    local hint="(Y/n)"
-    [ "$default" = "N" ] && hint="(y/N)"
-    read -rp "$(echo -e "${YELLOW}${prompt} ${hint}: ${NC}")" reply
-    reply=${reply:-$default}
-    [[ "$reply" =~ ^[Yy]$ ]]
-}
-
-install_pkgs() {
-    local label="$1"; shift
-    local to_install=()
-    local pkg
-    for pkg in "$@"; do
-        is_installed "$pkg" || to_install+=("$pkg")
-    done
-    if [ "${#to_install[@]}" -eq 0 ]; then
-        log_ok "$label already installed."
-        return 0
-    fi
-    log_info "$label: installing ${to_install[*]}"
-    if sudo apt-get install -y "${to_install[@]}"; then
-        log_ok "$label installed."
-    else
-        log_warn "$label: some packages failed to install (continuing)."
-        return 1
-    fi
-}
-
-ACTUAL_USER="${SUDO_USER:-$USER}"
-run_as_user() {
-    if [ "$(id -un)" = "$ACTUAL_USER" ]; then
-        "$@"
-    else
-        sudo -u "$ACTUAL_USER" "$@"
-    fi
-}
-
-KWRITECONFIG=""
-if command_exists kwriteconfig6; then KWRITECONFIG="kwriteconfig6"
-elif command_exists kwriteconfig5; then KWRITECONFIG="kwriteconfig5"; fi
-kwrite_user() { [ -n "$KWRITECONFIG" ] && run_as_user "$KWRITECONFIG" "$@"; }
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/common.sh
+source "$SCRIPT_DIR/lib/common.sh"
 
 if [[ $EUID -eq 0 ]]; then
     log_err "Do not run this as root."
@@ -101,7 +46,7 @@ WORK_DIR=$(mktemp -d)
 trap 'rm -rf "$WORK_DIR"' EXIT
 
 log_info "Refreshing package lists..."
-sudo apt-get update || { log_err "apt-get update failed, aborting."; exit 1; }
+apt_update || { log_err "apt-get update failed, aborting."; exit 1; }
 
 # ---------------------------------------------------------------------------
 # 1. Global Theme — application style, color scheme, window decoration,
@@ -256,8 +201,8 @@ if [ -n "$ACTIVE_ICON_THEME" ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# 3. Konsole "Catppuccin Red" profile — same self-authored approach as
-#    fancyPlasma.sh's "Devuan Glass" (not a downloaded file, so there's
+# 3. Konsole "Catppuccin Red" profile — self-authored (not a downloaded
+#    file, so there's
 #    nothing here whose contents you can't read in two seconds). Uses the
 #    official Catppuccin Mocha terminal ANSI mapping, RGB triples (Konsole
 #    colorscheme files use decimal R,G,B, not hex).
@@ -357,5 +302,5 @@ done
 
 echo -e "${GREEN}Catppuccin Plasma step complete.${NC}"
 log_warn "Log out and back in for anything that didn't visibly apply live to fully settle."
-log_info "Ran fancyPlasma.sh before this? Darkly's files are still on disk but no longer active —"
-log_info "swap back any time in System Settings > Appearance > Global Themes."
+log_info "This is the toolkit's theming step. Re-run it (or swap themes in System Settings >"
+log_info "Appearance > Global Themes) to change the look at any time."

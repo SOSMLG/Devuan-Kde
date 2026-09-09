@@ -77,7 +77,7 @@ ensure_i386() {
         sudo dpkg --add-architecture i386
     fi
     log_info "Refreshing package lists..."
-    sudo apt-get update || { log_err "apt-get update failed."; return 1; }
+    apt_update || { log_err "apt-get update failed."; return 1; }
     I386_ENABLED=1
 }
 
@@ -113,6 +113,8 @@ install_steam() {
         rm -f "$tmp_deb"
         return 1
     fi
+
+    verify_download "$tmp_deb" 102400 || return 1
 
     log_info "Installing Steam..."
     if sudo apt-get install -y "$tmp_deb"; then
@@ -168,6 +170,8 @@ print((amd64 or candidates or [''])[0])
         rm -f "$tmp_deb"
         return 1
     fi
+
+    verify_download "$tmp_deb" 102400 || return 1
 
     log_info "Installing Heroic .deb..."
     if sudo apt-get install -y "$tmp_deb"; then

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # DESC: Install & harden Firefox ESR with privacy-focused settings
 # Adapted from harden_firefox.sh (Butterbian) for the Devuan/Debian KDE setup.
 # Concept inspired by: https://github.com/tonybanters/tonarchy
@@ -52,7 +52,9 @@ ensure_firefox_esr() {
     fi
 
     echo -e "${CYAN}firefox-esr not found, installing it...${NC}"
-    sudo apt-get update || { echo -e "${RED}apt-get update failed.${NC}"; return 1; }
+    if [ -z "${DEVMKDE_SKIP_APT_UPDATE:-}" ]; then
+        sudo apt-get update || { echo -e "${RED}apt-get update failed.${NC}"; return 1; }
+    fi
     if sudo apt-get install -y firefox-esr; then
         echo -e "${GREEN}firefox-esr installed.${NC}"
     else
@@ -318,10 +320,24 @@ show_menu() {
     options+=("exit")
 
     echo ""
-    # Default to ESR (this project's chosen browser) when only ESR is present.
-    local default_choice=1
-    read -rp "Enter your choice [default: ${default_choice}]: " choice
-    choice=${choice:-$default_choice}
+    local choice
+    if [ -n "${DEVMKDE_ASSUME_YES:-}" ]; then
+        # Unattended (run.sh --yes / ISO build): prefer ESR (this project's browser),
+        # falling back to Latest when only that is installed.
+        for i in "${!options[@]}"; do
+            if [ "${options[$i]}" = "firefox-esr" ]; then
+                choice=$((i+1))
+                break
+            fi
+        done
+        [ -z "$choice" ] && choice=1
+        echo -e "${YELLOW}(unattended) hardening: ${options[$((choice-1))]}${NC}"
+    else
+        # Default to ESR (this project's chosen browser) when only ESR is present.
+        local default_choice=1
+        read -rp "Enter your choice [default: ${default_choice}]: " choice
+        choice=${choice:-$default_choice}
+    fi
 
     if ! [[ "$choice" =~ ^[0-9]+$ ]] || [ "$choice" -lt 1 ] || [ "$choice" -gt "${#options[@]}" ]; then
         echo -e "${RED}Invalid choice${NC}"

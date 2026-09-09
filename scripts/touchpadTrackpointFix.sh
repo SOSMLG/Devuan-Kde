@@ -18,21 +18,9 @@
 
 set -uo pipefail
 
-RED="\033[0;31m"; GREEN="\033[0;32m"; YELLOW="\033[1;33m"; CYAN="\033[0;36m"; NC="\033[0m"
-
-log_info() { echo -e "${CYAN}[*]${NC} $1"; }
-log_ok()   { echo -e "${GREEN}[OK]${NC} $1"; }
-log_warn() { echo -e "${YELLOW}[!]${NC} $1"; }
-log_err()  { echo -e "${RED}[ERROR]${NC} $1"; }
-
-ask() {
-    local prompt="$1" default="${2:-Y}" reply
-    local hint="(Y/n)"
-    [ "$default" = "N" ] && hint="(y/N)"
-    read -rp "$(echo -e "${YELLOW}${prompt} ${hint}: ${NC}")" reply
-    reply=${reply:-$default}
-    [[ "$reply" =~ ^[Yy]$ ]]
-}
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/common.sh
+source "$SCRIPT_DIR/lib/common.sh"
 
 echo -e "${CYAN}=========================================================${NC}"
 echo -e "${CYAN} Touchpad / Trackpoint Fix${NC}"

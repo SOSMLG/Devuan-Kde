@@ -16,48 +16,11 @@
 # =======================================================
 set -uo pipefail
 
-RED="\033[0;31m"; GREEN="\033[0;32m"; YELLOW="\033[1;33m"; CYAN="\033[0;36m"; NC="\033[0m"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/common.sh
+source "$SCRIPT_DIR/lib/common.sh"
 
-log_info() { echo -e "${CYAN}[*]${NC} $1"; }
-log_ok()   { echo -e "${GREEN}[OK]${NC} $1"; }
-log_warn() { echo -e "${YELLOW}[!]${NC} $1"; }
-log_err()  { echo -e "${RED}[ERROR]${NC} $1"; }
-
-is_installed() {
-    dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -q "install ok installed"
-}
-
-ask() {
-    local prompt="$1" default="${2:-Y}" reply
-    local hint="(Y/n)"
-    [ "$default" = "N" ] && hint="(y/N)"
-    read -rp "$(echo -e "${YELLOW}${prompt} ${hint}: ${NC}")" reply
-    reply=${reply:-$default}
-    [[ "$reply" =~ ^[Yy]$ ]]
-}
-
-install_pkgs() {
-    local label="$1"; shift
-    local to_install=()
-    local pkg
-    for pkg in "$@"; do
-        is_installed "$pkg" || to_install+=("$pkg")
-    done
-    if [ "${#to_install[@]}" -eq 0 ]; then
-        log_ok "$label already installed."
-        return 0
-    fi
-    log_info "$label: installing ${to_install[*]}"
-    if sudo apt-get install -y "${to_install[@]}"; then
-        log_ok "$label installed."
-        return 0
-    else
-        log_warn "$label: some packages failed to install (continuing)."
-        return 1
-    fi
-}
-
-if [[ $EUID -eq 0 ]]; then
+if [ "$(id -u)" -eq 0 ]; then
     log_err "Do not run this as root."
     exit 1
 fi
@@ -67,15 +30,19 @@ echo -e "${CYAN} Hardware Support${NC}"
 echo -e "${CYAN}=========================================================${NC}"
 
 log_info "Refreshing package lists..."
-sudo apt-get update || { log_err "apt-get update failed, aborting."; exit 1; }
+apt_update || { log_err "apt-get update failed, aborting."; exit 1; }
 
 # ---------------------------------------------------------------------------
 # 1. Common WiFi/Bluetooth firmware
 # ---------------------------------------------------------------------------
 if ask "Install common WiFi/Bluetooth firmware (Intel/Realtek/Atheros/Broadcom)?"; then
-    install_pkgs "WiFi/Bluetooth firmware" \
-        firmware-iwlwifi firmware-realtek firmware-atheros \
-        firmware-brcm80211 firmware-misc-nonfree firmware-linux
+    if check_repo_package firmware-iwlwifi "non-free-firmware"; then
+        install_pkgs "WiFi/Bluetooth firmware" \
+            firmware-iwlwifi firmware-realtek firmware-atheros \
+            firmware-brcm80211 firmware-misc-nonfree firmware-linux
+    else
+        log_warn "Skipping WiFi/Bluetooth firmware — non-free-firmware repo component is missing."
+    fi
 fi
 
 # ---------------------------------------------------------------------------
@@ -86,11 +53,15 @@ if ask "Install CPU microcode updates (auto-detects Intel/AMD)?"; then
     case "$VENDOR" in
         GenuineIntel)
             log_info "Detected Intel CPU."
-            install_pkgs "Intel microcode" intel-microcode
+            if check_repo_package intel-microcode "non-free-firmware"; then
+                install_pkgs "Intel microcode" intel-microcode
+            fi
             ;;
         AuthenticAMD)
             log_info "Detected AMD CPU."
-            install_pkgs "AMD microcode" amd64-microcode
+            if check_repo_package amd64-microcode "non-free-firmware"; then
+                install_pkgs "AMD microcode" amd64-microcode
+            fi
             ;;
         *)
             log_warn "Could not detect CPU vendor from /proc/cpuinfo, skipping microcode."

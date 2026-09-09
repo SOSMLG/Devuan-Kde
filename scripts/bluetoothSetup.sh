@@ -16,55 +16,11 @@
 # =======================================================
 set -uo pipefail
 
-RED="\033[0;31m"; GREEN="\033[0;32m"; YELLOW="\033[1;33m"; CYAN="\033[0;36m"; NC="\033[0m"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/common.sh
+source "$SCRIPT_DIR/lib/common.sh"
 
-log_info() { echo -e "${CYAN}[*]${NC} $1"; }
-log_ok()   { echo -e "${GREEN}[OK]${NC} $1"; }
-log_warn() { echo -e "${YELLOW}[!]${NC} $1"; }
-log_err()  { echo -e "${RED}[ERROR]${NC} $1"; }
-
-is_installed() { dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -q "install ok installed"; }
-command_exists() { command -v "$1" >/dev/null 2>&1; }
-
-ask() {
-    local prompt="$1" default="${2:-Y}" reply
-    local hint="(Y/n)"
-    [ "$default" = "N" ] && hint="(y/N)"
-    read -rp "$(echo -e "${YELLOW}${prompt} ${hint}: ${NC}")" reply
-    reply=${reply:-$default}
-    [[ "$reply" =~ ^[Yy]$ ]]
-}
-
-install_pkgs() {
-    local label="$1"; shift
-    local to_install=()
-    local pkg
-    for pkg in "$@"; do
-        is_installed "$pkg" || to_install+=("$pkg")
-    done
-    if [ "${#to_install[@]}" -eq 0 ]; then
-        log_ok "$label already installed."
-        return 0
-    fi
-    log_info "$label: installing ${to_install[*]}"
-    if sudo apt-get install -y "${to_install[@]}"; then
-        log_ok "$label installed."
-    else
-        log_warn "$label: some packages failed to install (continuing)."
-        return 1
-    fi
-}
-
-start_service() {
-    local svc="$1"
-    if command_exists systemctl && [ -d /run/systemd/system ]; then
-        sudo systemctl enable --now "$svc" >/dev/null 2>&1 || true
-    else
-        sudo service "$svc" start >/dev/null 2>&1 || true
-    fi
-}
-
-if [[ $EUID -eq 0 ]]; then
+if [ "$(id -u)" -eq 0 ]; then
     log_err "Do not run this as root."
     exit 1
 fi
@@ -74,7 +30,7 @@ echo -e "${CYAN} Bluetooth Setup${NC}"
 echo -e "${CYAN}=========================================================${NC}"
 
 log_info "Refreshing package lists..."
-sudo apt-get update || { log_err "apt-get update failed, aborting."; exit 1; }
+apt_update || { log_err "apt-get update failed, aborting."; exit 1; }
 
 # ---------------------------------------------------------------------------
 # 1. bluez — the actual Bluetooth stack (bluetoothd, hciconfig/bluetoothctl).
@@ -129,7 +85,7 @@ if ask "Set up Bluetooth audio (A2DP stereo sound for headsets/earbuds)?"; then
     case "$AUDIO_SERVER" in
         pipewire)
             log_info "PipeWire detected — installing its Bluetooth + session-management pieces."
-            install_pkgs "PipeWire Bluetooth support" pipewire-pulse pipewire-audio-client-libraries wireplumber libspa-0.2-bluetooth
+            install_pkgs "PipeWire Bluetooth support" pipewire-pulse wireplumber libspa-0.2-bluetooth
             ;;
         pulseaudio)
             log_info "PulseAudio detected — installing its Bluetooth module."

@@ -5,9 +5,10 @@ already installed** by the distro's own installer. This does *not* install
 KDE — it debloats the default Plasma task install toward a minimal-but-
 functional desktop, then fills in the "why doesn't this just work like
 Mint" gaps: codecs, WiFi/Bluetooth firmware, a unified software center,
-printing, a firewall panel, Timeshift for system snapshots, and (new) a
-theming pass — Darkly, KWin Blur/Magic Lamp, a centered KRunner, a glass
-Konsole profile — while staying an opt-in, à-la-carte toolkit rather than
+printing, a firewall panel, Timeshift for system snapshots, and a
+complete Catppuccin (Mocha, Red) visual identity — Plasma theme, icons,
+Konsole profile, Plymouth boot splash, GRUB menu, and SDDM login screen —
+while staying an opt-in, à-la-carte toolkit rather than
 a heavyweight installer.
 
 Structure follows the same "ordered runner + flat scripts/ dir" pattern as
@@ -50,10 +51,11 @@ TrackPoint nub, if you're on a ThinkPad):**
   (the same `Catppuccin-SE` set as the XFCE sibling, with the same
   memory-optimized `Catppuccin-SE-Local` build — see that project's
   notes on why), and a self-authored "Catppuccin Red" Konsole profile
-  using the official Catppuccin terminal ANSI mapping. **This sets the
-  same things `fancyPlasma.sh` sets** (style/colors/window decoration) —
-  they're alternatives, not additive, so `fancyPlasma.sh`'s default
-  flipped from `Y` to `N` here; whichever you run *last* is what's active.
+  using the official Catppuccin terminal ANSI mapping. **This is the
+  toolkit's single theming step** — it sets application style, color
+  scheme, window decoration, splash, and cursor. (A former companion
+  theming script, `fancyPlasma.sh`, is no longer shipped with this
+  toolkit; Catppuccin is the default look.)
 - **`bootThemeSetup.sh`** — carries the theme to Plymouth (boot splash)
   and GRUB (same as the XFCE sibling, both DE-agnostic), plus the SDDM
   login screen via [catppuccin/sddm](https://github.com/catppuccin/sddm)
@@ -85,7 +87,11 @@ TrackPoint nub, if you're on a ThinkPad):**
 
 ```
 devuan-kde-setup/
-├── run.sh                        # main entry point — run this
+├── run.sh                        # main entry point — run this (flags: --list/--only/--yes/--verify)
+├── iso/                          # build the whole toolkit as a live ISO (Freia + KDE + OpenRC)
+│   ├── build.sh                  # live-build runner (sudo ./iso/build.sh)
+│   ├── config/                   # seed config: package lists + bake/OpenRC hooks + skel setup
+│   └── README.md                 # ISO build/test/install docs
 ├── scripts/
 │   ├── addUserToGroups.sh        # input/video/render groups
 │   ├── kdeDebloat.sh             # remove games/edu/PIM bloat, Kate/Konqueror/Dragon Player, disable Baloo
@@ -102,8 +108,8 @@ devuan-kde-setup/
 │   ├── fastfetchConfig.sh        # fastfetch + curated config presets
 │   ├── usefulApps.sh             # VLC, TLP (+ ThinkPad battery thresholds), small completeness packages
 │   ├── desktopEssentials.sh      # Flatpak/Discover, PackageKit, printing, Partition Manager, firewall panel
-│   ├── fancyPlasma.sh            # ★ (alternative look) Darkly, Blur + Magic Lamp, centered KRunner, glass Konsole
 │   ├── timeshiftSetup.sh         # Timeshift system snapshot/restore tool
+│   ├── networkTimeSync.sh        # NTP time sync via chrony (works under any init)
 │   ├── installPhotogimp.sh       # (optional) GIMP + PhotoGIMP layout/theme, fetched live from GitHub
 │   ├── installVscodium.sh        # (optional) VSCodium via official APT repo
 │   ├── vscodiumDevSetup.sh       # (optional) VSCodium C++/Python dev environment
@@ -111,16 +117,15 @@ devuan-kde-setup/
 │   ├── devToolsExtras.sh         # (optional) btop, eza, bat, zoxide, Neovim+lazy.nvim, KeePassXC
 │   ├── gamingSetup.sh            # (optional) Heroic Games Launcher / Steam / Wine
 │   ├── vesktopTelegram.sh        # (optional) Vesktop (Discord client) / Telegram
-│   ├── lib/common.sh             # shared helpers sourced by aiOpencode.sh / devToolsExtras.sh only
+│   ├── verifySetup.sh            # end-state audit of a run (what run.sh --verify runs)
+│   ├── configBackup.sh           # backup/restore/list your toolkit's per-user config
+│   ├── systemMaintenance.sh      # apt cleanup, dead ~/.local/bin symlinks, optional upgrade
+│   ├── exportToSkel.sh           # copy baked per-user defaults into /etc/skel (ISO & multi-user)
+│   ├── lib/common.sh             # shared helpers sourced by every script
 │   └── skills/devuan-kde-SKILL.md # system context file for AI coding agents (OpenCode/Claude Code)
 ├── butterbash/                   # bundled copy of butterbash-main, used offline
 └── README.md
 ```
-
-Scripts marked ★ are new additions built from a YouTube walkthrough
-rather than part of the toolkit's original scope — see that script's
-own writeup below for exactly what's automated vs. what's a printed
-manual step.
 
 ## Usage
 
@@ -142,6 +147,21 @@ standalone, e.g. just the touchpad fix:
 ```bash
 bash scripts/touchpadTrackpointFix.sh
 ```
+
+`run.sh` options:
+
+```bash
+./run.sh --list                       # print every script in run order + its default
+./run.sh --only kdeDebloat.sh,usefulApps.sh   # run a subset (order kept sane)
+./run.sh --yes                        # unattended: every prompt takes its default
+./run.sh --no-update                  # skip run.sh's single apt-get update
+./run.sh --verify                     # after the run, run scripts/verifySetup.sh
+```
+
+One detail worth knowing: the runner refreshes `apt` **once** up front and
+then exports `DEVMKDE_SKIP_APT_UPDATE=1`, so the ~13 scripts that otherwise
+each run their own `apt-get update` are no-ops under the runner. Running any
+script standalone still refreshes on its own, so nothing changes there.
 
 ## What each step does
 
@@ -166,14 +186,13 @@ Gwenview, Ark, System Settings, SDDM, etc. are never touched.
 Every category is its own y/N prompt, so you can keep the games or the
 PIM suite if you actually use them.
 
-**catppuccinPlasma.sh** — an alternative to fancyPlasma.sh below. Installs
+**catppuccinPlasma.sh** — the toolkit's theming step. Installs
 the official [catppuccin/kde](https://github.com/catppuccin/kde) Global
 Theme (Mocha flavour, Red accent, Classic window decoration — no compile
-step, unlike Darkly, since Catppuccin ships pre-rendered), the same
+step, since Catppuccin ships pre-rendered), the same
 `Catppuccin-SE`/`Catppuccin-SE-Local` icon pipeline as this toolkit's XFCE
 sibling project, and a self-authored "Catppuccin Red" Konsole profile.
-**This sets the same things fancyPlasma.sh does** — run whichever one you
-want *last*; that's the one that stays active. Re-run it after installing
+Re-run it after installing
 new apps to refresh the icon set.
 
 **bootThemeSetup.sh** — the part before you reach Plasma at all: a
@@ -298,56 +317,15 @@ part its own y/N prompt:
   listening sshd and allows port 22 through *before* flipping to
   default-deny, so this can't lock you out of your own box over SSH).
 
-**fancyPlasma.sh** ★ *(alternative look — defaults to N since
-catppuccinPlasma.sh above sets the same things and is now the default)* —
-the theming pass pulled from a "make KDE look modern" YouTube walkthrough
-(Darkly + Ant Dark, blur, rounded corners, a floating titlebar, centered
-KRunner, a cleaner panel, a glass Konsole). Split honestly between what's
-genuinely scriptable and what isn't, same bar as everything else in this
-toolkit — a wrong KWin/kdeglobals config key doesn't error, it just
-silently writes an unused key and nothing visibly changes, so nothing
-here was guessed without a source:
-
-- **Darkly** (application style + color scheme + window decoration) —
-  built from [Bali10050/Darkly](https://github.com/Bali10050/Darkly)
-  source using that project's own documented Kubuntu/apt package list
-  (KF6-only subset — Plasma 6's decoration API is KF6-only regardless,
-  so nothing is lost skipping the KF5 half of their list), with the
-  git branch chosen based on your actual installed Plasma version
-  (`Darkly-6.4` below Plasma 6.5, `main` otherwise — the project's own
-  compatibility notes). Style and color scheme apply via `kwriteconfig`
-  and `plasma-apply-colorscheme`, both well-documented; the window
-  decoration line is a best-effort guess at Darkly's plugin ID with a
-  one-line manual fallback if it doesn't visibly stick.
-- **KWin Blur** and **Magic Lamp** — both real built-in KWin effects,
-  toggled via `kwinrc`'s documented `Plugins` group (the stock
-  scale-based minimize effect is disabled alongside Magic Lamp so they
-  don't conflict over which one plays).
-- **KRunner centered** — `krunnerrc`'s `FreeFloating` key, the same fix
-  documented on the Arch Wiki.
-- **A "Devuan Glass" Konsole profile** — self-written, not downloaded:
-  bigger monospace font, the built-in White on Black color scheme,
-  ~30% background transparency with blur, set as your default profile.
-- **Panel cleanup** — removes the Pager and Show Desktop widgets
-  through Plasma's own **scripting D-Bus API**
-  (`org.kde.PlasmaShell.evaluateScript`), not hand-edited appletsrc —
-  this toolkit treats that config file the same way `kwriteconfig-edit`-
-  style tooling does: never touch it with `sed`/manual parsing. Safe to
-  skip since `Ctrl+Super+Arrows` and `Super+D` already do the same job.
-
-What it deliberately leaves as a printed manual checklist instead of
-guessing at: **Ant Dark** (the panel/widget style from the video) is
-KDE-Store-distributed, which needs the KNewStuff/OCS protocol rather
-than a plain download URL, so there's no way to verify a fetch for it
-the way there is for Darkly's GitHub repo — use System Settings' own
-"Get New" dialog. Darkly's **own** transparency sliders, corner radius,
-and floating-titlebar toggle live inside Darkly's settings panel, not a
-documented KWin key. **Accent color from wallpaper** is a real Plasma
-feature but is D-Bus-driven rather than a static config value. The
-**Window List** widget, centering panel icons with spacers, and a
-custom menu icon all need either an exact applet ID or a file path only
-you have — all quick by hand, all listed at the end of the script's
-own output.
+**catppuccinPlasma.sh was previously paired with a second theming script,
+`fancyPlasma.sh`** (a Darkly/KWin-Blur look pulled from a YouTube
+walkthrough), which is no longer shipped with this toolkit — Catppuccin
+is now the single theming step. Any archived instructions referencing it
+can be safely ignored; nothing depends on it. If you'd like that
+specific look back, the pieces it used (the [Bali10050/Darkly](https://github.com/Bali10050/Darkly)
+application style, KWin Blur + Magic Lamp effects via `kwinrc`'s `Plugins`
+group, and `krunnerrc`'s `FreeFloating` key) are all individually
+documented and trivially reproducible by hand.
 
 **timeshiftSetup.sh** — installs Timeshift, Mint's signature "snapshot
 before a risky change, roll back in a couple clicks if it breaks"
@@ -360,6 +338,13 @@ cron daemon is present and installs the tool, but deliberately does
 choice with real disk-space implications, and Timeshift's own setup
 wizard (`sudo timeshift-launcher`, or find it in the app menu) is quick
 and worth doing deliberately rather than guessed on your behalf.
+
+**networkTimeSync.sh** *(new, defaults to skip)* — enables automatic NTP
+time sync via `chrony`. The toolkit's fallback for machines where nothing
+else sets the clock (cable boxes, offline-first devices, odd routers); on a
+normal NetworkManager-managed desktop it's a harmless no-op. Works under any
+init — systemd, OpenRC, or sysvinit — through the shared `start_service()`
+helper, and verifies with `chronyc tracking` after starting.
 
 **installPhotogimp.sh** *(optional, defaults to skip)* — installs GIMP via
 apt and applies [PhotoGIMP](https://github.com/Diolinux/PhotoGIMP)'s
@@ -478,10 +463,71 @@ minimal starter config, and KeePassXC.
 - **Telegram Desktop** — same method as your `DiscordAndTelegram.sh`:
   official `tar.xz` from `telegram.org/dl/desktop/linux`, extracted to
   `~/.local/opt/Telegram`, symlinked into `~/.local/bin/telegram`, with a
-  `.desktop` entry. No sudo needed for this half at all — it's entirely
-  user-space.
+`.desktop` entry. No sudo needed for this half at all — it's entirely
+user-space.
+
+**verifySetup.sh** — the end-state audit `run.sh --verify` calls. Checks
+exactly what the toolkit claims to set up: `input`/`video`/`render` group
+membership, the key packages (VLC, TLP, firmware, codecs, firefox-esr,
+fonts, fastfetch, flatpak, timeshift, bluez, fwupd), the JetBrainsMono Nerd
+Font, Firefox's hardened `user.js`, the Catppuccin theme, and that
+bluetooth/tlp/cups/chrony are running. Runs read-only, prints
+`PASS/FAIL/WARN`, exits non-zero if anything critical failed. Optional
+packages (gaming, messaging, dev tools) are `WARN`, not `FAIL`, so a lean
+install doesn't false-alarm.
+
+**configBackup.sh** — `backup` (default) / `list` / `restore` subcommands
+for the per-user config this toolkit creates: `~/.config` (browser
+profiles and caches excluded), fonts, Konsole/color-scheme/plasma dirs,
+`~/.local/bin`, and your dotfiles, into a timestamped archive that rotates
+to the 5 newest. Pair it with `exportToSkel.sh` for a machine that keeps
+its look across reinstalls. `CONFIG_BACKUP_DIR=/path` overrides the output
+dir.
+
+**systemMaintenance.sh** — periodic tidy, init-agnostic: `autoclean` +
+`autoremove`, removal of the now-obsolete empty `pipewire-audio-client-
+libraries` transitional package if it lingers, deletion of dead
+`~/.local/bin` symlinks (toasts for e.g. Telegram moved out of
+`~/.local/opt`), and an optional `full-upgrade`. Every step asks.
+
+**exportToSkel.sh** — copies the baked per-user defaults (fonts, Konsole
+profile/colors, fastfetch config, `.desktop` entries) into `/etc/skel`, so
+*every future account* on the machine starts with them. Used by the ISO
+build; also useful on a multi-user box. The ISO bake runs it with
+`--user lbuilder --force`; `--force` is required to overwrite existing
+skel files, and `--list`/`--dry-run` preview without changing anything.
+
+## Building it as an ISO
+
+See **`iso/README.md`**. `sudo ./iso/build.sh` produces a reproducible
+Devuan Freia + KDE Plasma **OpenRC** live ISO with everything above
+pre-baked (via `config/hooks/normal/*.chroot` running the toolkit with
+`DEVMKDE_ASSUME_YES=1`), `refractainstaller` for install-to-disk, and
+`SHA256SUMS` alongside the image. An optional GitHub Actions recipe is
+included (`iso.yml.pending`) but disabled by default — rename it to
+`.github/workflows/iso.yml` to let CI build the ISO for you.
 
 ## Notes / things worth knowing before you run it
+
+- **Environment variables** the toolkit honors (all optional):
+
+  | Variable | Effect |
+  |---|---|
+  | `DEVMKDE_ASSUME_YES=1` | every `ask()` takes its default — used by `run.sh --yes` and the ISO bake hooks |
+  | `DEVMKDE_SKIP_APT_UPDATE=1` | `apt_update()` is a no-op — exported by `run.sh` after its single refresh; scripts skip their own `apt-get update` |
+  | `CONFIG_BACKUP_DIR=/path` | where `configBackup.sh` writes/reads archives (default `$HOME`) |
+  | `SKEL_DIR=/path` | target dir for `exportToSkel.sh` (default `/etc/skel`) |
+  | `DEVUAN_MIRROR=http://...` | mirror used by `iso/build.sh` for reproducible ISO rebuilds |
+
+- **How downloads are verified.** Anything this toolkit fetches is checked
+  structurally after download — non-empty, and a valid archive of its kind
+  (`.tar.xz`/`.tar.gz`/`.deb`/`.zip` via their native tools, so a truncated
+  download or a 404-HTML body is caught before extraction), and the computed
+  SHA-256 is logged so you can eyeball it against a release page. Strict
+  checksum comparison is only claimed where upstream publishes a known hash;
+  the Nerd Font download fetches and checks against upstream's signed
+  `JetBrainsMono.tar.xz.sha256`. (Package downloads from `apt` are covered
+  by APT's own signature/checksum machinery.)
 
 - Every apt action first checks what's *actually installed* — nothing is
   blindly force-purged, so re-running is safe and idempotent.
@@ -489,15 +535,13 @@ minimal starter config, and KeePassXC.
   rely on Kontact/KMail for email, or KDE's education apps, just answer
   `n` to that specific category.
 - Devuan doesn't run systemd, so anything that would normally be
-  `systemctl enable --now foo` falls back to `service foo start` where
-  relevant (TLP, CUPS, fwupd) — but most of what's here (Baloo, apt,
-  config files, modprobe, cron) is init-system agnostic. Timeshift in
-  particular was specifically checked to depend on plain `cron` rather
-  than systemd before it went in this toolkit.
-- `fancyPlasma.sh` builds Darkly from source — expect the dependency
-  install + compile step to take a few minutes on modest hardware. If
-  the build itself fails, everything else in the script still runs;
-  nothing else here depends on Darkly succeeding.
+  `systemctl enable --now foo` falls back to the OpenRC
+  (`rc-update add <svc> default && rc-service <svc> start`) or sysvinit
+  (`service <svc> start`) path where relevant (TLP, CUPS, fwupd) — but
+  most of what's here (Baloo, apt, config files, modprobe, cron) is
+  init-system agnostic. Timeshift in particular was specifically
+  checked to depend on plain `cron` rather than systemd before it went
+  in this toolkit.
 - Nothing in this toolkit auto-enables a firewall deny rule — you turn
   that on yourself once you've confirmed it's safe. Same philosophy as
   everything else here: install and get out of the way, don't silently
@@ -505,16 +549,3 @@ minimal starter config, and KeePassXC.
 - Reboot (or at least log out/in) after a full run — group membership,
   the mousepoll fix, newly installed firmware/microcode, and Baloo all
   benefit from a fresh session.
-
-## Video credit
-
-`fancyPlasma.sh` was built from watching a "make KDE Plasma look
-modern" YouTube walkthrough covering Darkly, Ant Dark, KWin Blur,
-rounded corners, a floating titlebar, centered KRunner, panel cleanup,
-and a transparent/blurred Konsole. Not everything demonstrated made it
-into the script — Ant Dark specifically is KDE-Store-distributed with
-no plain download URL to verify against, and a few KWin/Darkly settings
-don't have a documented config key to set safely from a script — those
-are called out explicitly in the script's own comments and printed as
-a short manual checklist at the end of its output instead of being
-guessed at.

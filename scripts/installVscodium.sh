@@ -39,7 +39,7 @@ fi
 for dep in wget gpg; do
     if ! command -v "$dep" >/dev/null 2>&1; then
         log_info "Installing dependency: $dep"
-        sudo apt-get update -qq || true
+        apt_update -qq || true
         sudo apt-get install -y "$dep" || { log_err "Failed to install $dep"; exit 1; }
     fi
 done
@@ -67,7 +67,7 @@ else
 fi
 
 log_info "Updating package lists..."
-sudo apt-get update || { log_err "apt-get update failed after adding the VSCodium repo."; exit 1; }
+apt_update || { log_err "apt-get update failed after adding the VSCodium repo."; exit 1; }
 
 log_info "Installing codium..."
 if sudo apt-get install -y codium; then

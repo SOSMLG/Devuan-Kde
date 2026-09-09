@@ -33,7 +33,12 @@ else
     echo "  2) npm: npm install -g opencode-ai"
     echo "     (goes through the npm registry instead — needs Node.js/npm installed first)"
     echo
-    read -rp "$(echo -e "${YELLOW}Install via [1] official script, [2] npm, or [N] skip? (1/2/N): ${NC}")" METHOD
+    METHOD=""
+    if [ -n "${DEVMKDE_ASSUME_YES:-}" ]; then
+        METHOD="N"
+    else
+        read -rp "$(echo -e "${YELLOW}Install via [1] official script, [2] npm, or [N] skip? (1/2/N): ${NC}")" METHOD
+    fi
 
     case "$METHOD" in
         1)
@@ -140,7 +145,7 @@ fi
 # in both common locations so whichever one you use picks it up.
 # ---------------------------------------------------------------------------
 if ask "Install a system 'skill' file so AI tools know this is a Devuan/KDE Plasma box?"; then
-    SKILL_SRC="$SCRIPT_DIR/../skills/devuan-kde-SKILL.md"
+    SKILL_SRC="$SCRIPT_DIR/skills/devuan-kde-SKILL.md"
     if [ -f "$SKILL_SRC" ]; then
         mkdir -p "$HOME/.config/opencode"
         cp "$SKILL_SRC" "$HOME/.config/opencode/AGENTS.md" 2>/dev/null \

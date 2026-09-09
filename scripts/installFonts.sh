@@ -7,12 +7,9 @@
 # =======================================================
 set -uo pipefail
 
-RED="\033[0;31m"; GREEN="\033[0;32m"; YELLOW="\033[1;33m"; CYAN="\033[0;36m"; NC="\033[0m"
-
-log_info() { echo -e "${CYAN}[*]${NC} $1"; }
-log_ok()   { echo -e "${GREEN}[OK]${NC} $1"; }
-log_warn() { echo -e "${YELLOW}[!]${NC} $1"; }
-log_err()  { echo -e "${RED}[ERROR]${NC} $1"; }
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/common.sh
+source "$SCRIPT_DIR/lib/common.sh"
 
 if [[ $EUID -eq 0 ]]; then
     log_err "Do not run this as root."
@@ -35,7 +32,7 @@ trap 'rm -rf "$WORK_DIR"' EXIT
 # 1. APT packages
 # ---------------------------------------------------------------------------
 log_info "Updating package lists..."
-sudo apt-get update -qq
+apt_update -qq
 
 log_info "Installing Noto + Font Awesome via apt..."
 if sudo apt-get install -y \
@@ -76,6 +73,22 @@ else
     if ! curl -fsSL --progress-bar -L -o "$FONT_ARCHIVE" "$DOWNLOAD_URL"; then
         log_err "Download failed: ${DOWNLOAD_URL}"
         exit 1
+    fi
+
+    verify_download "$FONT_ARCHIVE" 1048576 || exit 1
+
+    # Upstream nerd-fonts publishes "<asset>.tar.xz.sha256" per release asset.
+    # Compare against it when reachable; otherwise fall back to the structural
+    # check above plus a logged sha256 to eyeball manually.
+    EXPECTED_SHA="$(curl -fsSL --max-time 20 "${DOWNLOAD_URL}.sha256" 2>/dev/null | awk '{print $1}' | tr 'A-F' 'a-f')"
+    if [ -n "$EXPECTED_SHA" ]; then
+        if ! sha256_verify "$FONT_ARCHIVE" "$EXPECTED_SHA"; then
+            log_err "Checksum mismatch — the download may have been tampered with. Removing it."
+            exit 1
+        fi
+    else
+        log_warn "Could not fetch upstream .sha256 for this release — relying on the structural check."
+        log_warn "Compare manually if you want: $(sha256sum "$FONT_ARCHIVE" | cut -d' ' -f1)"
     fi
 
     log_info "Extracting fonts..."

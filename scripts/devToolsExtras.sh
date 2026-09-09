@@ -21,7 +21,7 @@ require_not_root
 log_head "Dev Tools Extras"
 
 log_info "Refreshing package lists..."
-sudo apt-get update || { log_err "apt-get update failed, aborting."; exit 1; }
+apt_update || { log_err "apt-get update failed, aborting."; exit 1; }
 
 # ---------------------------------------------------------------------------
 # 1. btop — resource monitor with a much nicer UI than top/htop.

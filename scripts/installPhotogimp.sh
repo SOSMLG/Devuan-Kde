@@ -97,6 +97,8 @@ if ! curl -fL -o "$TMP_DIR/photogimp.tar.gz" "$TARBALL_URL"; then
     exit 1
 fi
 
+verify_download "$TMP_DIR/photogimp.tar.gz" 102400 || exit 1
+
 log_info "Extracting..."
 if ! tar xzf "$TMP_DIR/photogimp.tar.gz" -C "$TMP_DIR"; then
     log_err "Failed to extract the downloaded archive."
@@ -118,7 +120,7 @@ log_ok "PhotoGIMP $TAG downloaded and verified."
 # ---------------------------------------------------------------------------
 if ! is_installed gimp; then
     log_info "Refreshing package lists..."
-    sudo apt-get update || { log_err "apt-get update failed, aborting."; exit 1; }
+    apt_update || { log_err "apt-get update failed, aborting."; exit 1; }
     log_info "Installing GIMP..."
     sudo apt-get install -y gimp || { log_err "Failed to install GIMP."; exit 1; }
 else

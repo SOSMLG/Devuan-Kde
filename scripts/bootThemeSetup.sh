@@ -2,7 +2,7 @@
 # =======================================================
 # bootThemeSetup.sh — the part before you reach Plasma
 # -------------------------------------------------------
-# catppuccinPlasma.sh (or fancyPlasma.sh) handles everything *inside*
+# catppuccinPlasma.sh handles everything *inside*
 # the session. This handles the three things you see *before* that:
 # the Plymouth splash while the kernel boots, the GRUB menu (if you
 # ever see it), and the SDDM login screen. Right now all three are
@@ -19,25 +19,11 @@
 # =======================================================
 set -uo pipefail
 
-RED="\033[0;31m"; GREEN="\033[0;32m"; YELLOW="\033[1;33m"; CYAN="\033[0;36m"; NC="\033[0m"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/common.sh
+source "$SCRIPT_DIR/lib/common.sh"
 
-log_info() { echo -e "${CYAN}[*]${NC} $1"; }
-log_ok()   { echo -e "${GREEN}[OK]${NC} $1"; }
-log_warn() { echo -e "${YELLOW}[!]${NC} $1"; }
-log_err()  { echo -e "${RED}[ERROR]${NC} $1"; }
-
-command_exists() { command -v "$1" >/dev/null 2>&1; }
-
-ask() {
-    local prompt="$1" default="${2:-Y}" reply
-    local hint="(Y/n)"
-    [ "$default" = "N" ] && hint="(y/N)"
-    read -rp "$(echo -e "${YELLOW}${prompt} ${hint}: ${NC}")" reply
-    reply=${reply:-$default}
-    [[ "$reply" =~ ^[Yy]$ ]]
-}
-
-if [[ $EUID -eq 0 ]]; then
+if [ "$(id -u)" -eq 0 ]; then
     log_err "Run this as your normal user, not root."
     exit 1
 fi
@@ -51,7 +37,7 @@ echo -e "${CYAN} Boot -> Login Theming (Catppuccin Mocha)${NC}"
 echo -e "${CYAN}=========================================================${NC}"
 
 log_info "Refreshing package lists..."
-sudo apt-get update -qq
+apt_update -qq
 
 # ---------------------------------------------------------------------------
 # 1. Plymouth boot splash

@@ -17,18 +17,9 @@
 
 set -uo pipefail
 
-RED="\033[0;31m"; GREEN="\033[0;32m"; YELLOW="\033[1;33m"; CYAN="\033[0;36m"; NC="\033[0m"
-
-log_info() { echo -e "${CYAN}[*]${NC} $1"; }
-log_ok()   { echo -e "${GREEN}[OK]${NC} $1"; }
-log_warn() { echo -e "${YELLOW}[!]${NC} $1"; }
-log_err()  { echo -e "${RED}[ERROR]${NC} $1"; }
-
-is_installed() {
-    dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -q "install ok installed"
-}
-
-command_exists() { command -v "$1" >/dev/null 2>&1; }
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/common.sh
+source "$SCRIPT_DIR/lib/common.sh"
 
 # Purge only the packages from the given list that are actually installed.
 purge_if_installed() {
@@ -50,23 +41,10 @@ purge_if_installed() {
     fi
 }
 
-ask() {
-    local prompt="$1" default="${2:-Y}" reply
-    local hint="(Y/n)"
-    [ "$default" = "N" ] && hint="(y/N)"
-    read -rp "$(echo -e "${YELLOW}${prompt} ${hint}: ${NC}")" reply
-    reply=${reply:-$default}
-    [[ "$reply" =~ ^[Yy]$ ]]
-}
-
-ACTUAL_USER="${SUDO_USER:-$USER}"
-run_as_user() {
-    if [ "$(id -un)" = "$ACTUAL_USER" ]; then
-        "$@"
-    else
-        sudo -u "$ACTUAL_USER" "$@"
-    fi
-}
+if [ "$(id -u)" -eq 0 ]; then
+    log_err "Do not run this as root — run it as a normal user (sudo is called internally)."
+    exit 1
+fi
 
 echo -e "${CYAN}=========================================================${NC}"
 echo -e "${CYAN} KDE Plasma Debloat${NC}"
@@ -78,7 +56,7 @@ if ! command_exists apt-get; then
 fi
 
 log_info "Refreshing package lists..."
-sudo apt-get update || { log_err "apt-get update failed, aborting."; exit 1; }
+    apt_update || { log_err "apt-get update failed, aborting."; exit 1; }
 
 # ---------------------------------------------------------------------------
 # 1. KDE Games (kdegames metapackage pulls all of these in)

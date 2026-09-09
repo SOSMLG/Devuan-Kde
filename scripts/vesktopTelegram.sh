@@ -85,6 +85,8 @@ print((amd64 or candidates or [''])[0])
         return 1
     fi
 
+    verify_download "$tmp_deb" 102400 || return 1
+
     log_info "Installing Vesktop..."
     if sudo apt-get install -y "$tmp_deb"; then
         log_ok "Vesktop installed."
@@ -120,6 +122,8 @@ install_telegram() {
         log_err "Failed to download Telegram."
         return 1
     fi
+
+    verify_download "$tmp_dir/telegram.tar.xz" 10485760 || return 1
 
     mkdir -p "$HOME/.local/opt"
     if [ -d "$HOME/.local/opt/Telegram" ]; then

@@ -5,7 +5,9 @@
 #   render -> GPU compute/accel access (DRI render nodes)
 set -uo pipefail
 
-RED="\033[0;31m"; GREEN="\033[0;32m"; YELLOW="\033[1;33m"; NC="\033[0m"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/common.sh
+source "$SCRIPT_DIR/lib/common.sh"
 
 # Get actual user even when this was invoked with sudo somewhere upstream
 ACTUAL_USER="${SUDO_USER:-$USER}"
