@@ -33,6 +33,8 @@ CANDIDATES=(
     "$HOME/.local/share/applications"
     "$HOME/.local/share/fonts"
     "$HOME/.local/share/color-schemes"
+    "$HOME/.local/share/icon-themes"
+    "$HOME/.local/share/icons"
     "$HOME/.local/share/konsole"
     "$HOME/.local/share/plasma"
     "$HOME/.local/bin"
@@ -59,13 +61,12 @@ latest_archive() {
 }
 
 do_backup() {
-    local existing=()
-    local include=()
+    local include_rel=()
     local src
     for src in "${CANDIDATES[@]}"; do
-        [ -e "$src" ] && include+=("$src")
+        [ -e "$src" ] && include_rel+=("${src#"$HOME"/}")
     done
-    [ "${#include[@]}" -eq 0 ] && { log_warn "Nothing in the backup set exists yet — nothing to back up."; return 1; }
+    [ "${#include_rel[@]}" -eq 0 ] && { log_warn "Nothing in the backup set exists yet — nothing to back up."; return 1; }
 
     local stamp
     stamp="$(date +%Y%m%d-%H%M%S)"
@@ -73,14 +74,19 @@ do_backup() {
 
     mkdir -p "$BACKUP_ROOT"
     log_info "Creating backup: $archive"
-    log_info "  including: ${include[*]}"
+    log_info "  including: ${include_rel[*]}"
 
-    local tar_args=(-czf "$archive")
-    local ex
+    local tar_args=(-czf "$archive" -C "$HOME")
+    local ex pattern
     for ex in "${EXCLUDES[@]}"; do
-        tar_args+=(--exclude="$ex")
+        # Only strip the $HOME prefix from real paths; leave glob patterns alone.
+        case "$ex" in
+            "$HOME/"*) pattern="${ex#"$HOME"/}" ;;
+            *) pattern="$ex" ;;
+        esac
+        tar_args+=(--exclude="$pattern")
     done
-    tar_args+=("${include[@]}")
+    tar_args+=("${include_rel[@]}")
 
     if ! tar "${tar_args[@]}" >/dev/null 2>&1; then
         log_err "Backup failed — see message above."
@@ -111,7 +117,7 @@ do_list() {
     [ -z "$archive" ] && { log_warn "No backups found in $BACKUP_ROOT."; return 1; }
     log_info "Newest backup: $archive"
     echo
-    tar -tzf "$archive" 2>/dev/null | sed 's![^/]*/!!' | sort -u | grep -v '^$' | head -80
+    tar -tzf "$archive" 2>/dev/null | sed 's!^\./!!' | sort -u | grep -v '^$' | head -80
     echo
     log_info "(first 80 unique paths shown — full list in the archive itself)"
 }

@@ -21,34 +21,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/common.sh
 source "$SCRIPT_DIR/lib/common.sh"
 
-# Purge only the packages from the given list that are actually installed.
-purge_if_installed() {
-    local label="$1"; shift
-    local to_purge=()
-    local pkg
-    for pkg in "$@"; do
-        is_installed "$pkg" && to_purge+=("$pkg")
-    done
-    if [ "${#to_purge[@]}" -eq 0 ]; then
-        log_info "$label: nothing installed, skipping."
-        return 0
-    fi
-    log_info "$label: purging ${to_purge[*]}"
-    if sudo apt-get purge -y "${to_purge[@]}"; then
-        log_ok "$label removed."
-    else
-        log_warn "$label: some packages failed to purge (continuing)."
-    fi
-}
+require_not_root
 
-if [ "$(id -u)" -eq 0 ]; then
-    log_err "Do not run this as root — run it as a normal user (sudo is called internally)."
-    exit 1
-fi
-
-echo -e "${CYAN}=========================================================${NC}"
-echo -e "${CYAN} KDE Plasma Debloat${NC}"
-echo -e "${CYAN}=========================================================${NC}"
+log_head "KDE Plasma Debloat"
 
 if ! command_exists apt-get; then
     log_err "apt-get not found — this script needs a Debian/Devuan APT system."
@@ -56,7 +31,7 @@ if ! command_exists apt-get; then
 fi
 
 log_info "Refreshing package lists..."
-    apt_update || { log_err "apt-get update failed, aborting."; exit 1; }
+apt_update || { log_err "apt-get update failed, aborting."; exit 1; }
 
 # ---------------------------------------------------------------------------
 # 1. KDE Games (kdegames metapackage pulls all of these in)
@@ -114,9 +89,7 @@ fi
 #    what actually gets installed here, not just promised in a comment.
 # ---------------------------------------------------------------------------
 if ask "Remove Kate, Konqueror, and Dragon Player (Dolphin/VLC already cover file-browsing/media; installs FeatherPad as a lightweight text editor in their place)?"; then
-    sudo apt-get install -y featherpad \
-        && log_ok "FeatherPad installed as a lightweight text editor." \
-        || log_warn "FeatherPad failed to install — removing Kate would leave you with no GUI text editor. Skipping the removal."
+    install_pkgs "FeatherPad" featherpad
 
     if is_installed featherpad; then
         purge_if_installed "Kate/Konqueror/Dragon Player" \
@@ -125,7 +98,26 @@ if ask "Remove Kate, Konqueror, and Dragon Player (Dolphin/VLC already cover fil
 fi
 
 # ---------------------------------------------------------------------------
-# 6. Cleanup orphaned dependencies
+# 6. LibreOffice trim — keep Writer + Calc, drop the modules most people
+#    on a lean desktop never touch. Carried over from the Cinnamon sibling
+#    toolkit; DE-agnostic (LibreOffice is the same everywhere).
+# ---------------------------------------------------------------------------
+if ask "Trim LibreOffice to Writer + Calc (remove Impress/Draw/Base/Math)?" "N"; then
+    purge_if_installed "LibreOffice trim" \
+        libreoffice-impress libreoffice-draw libreoffice-base libreoffice-math
+fi
+
+# ---------------------------------------------------------------------------
+# 7. Warpinator/HexChat — Mint-task leftovers that sometimes ride along
+#    on a Devuan box via a Mint KB; optional purge for symmetry with the
+#    Cinnamon sibling toolkit.
+# ---------------------------------------------------------------------------
+if ask "Remove Warpinator/HexChat (Mint local-network file sharing + IRC client)?" "N"; then
+    purge_if_installed "Warpinator/HexChat" warpinator hexchat hexchat-common hexchat-python
+fi
+
+# ---------------------------------------------------------------------------
+# 8. Cleanup orphaned dependencies
 # ---------------------------------------------------------------------------
 if ask "Run apt autoremove + clean to drop now-orphaned dependencies?"; then
     log_info "Running apt-get autoremove --purge..."
@@ -136,7 +128,7 @@ if ask "Run apt autoremove + clean to drop now-orphaned dependencies?"; then
 fi
 
 # ---------------------------------------------------------------------------
-# 7. Disable Baloo file indexing (per-user, big idle CPU/disk hog)
+# 9. Disable Baloo file indexing (per-user, big idle CPU/disk hog)
 # ---------------------------------------------------------------------------
 if ask "Disable Baloo file indexing (recommended for a lean/minimal feel)?"; then
     BALOOCTL=""
@@ -158,17 +150,10 @@ if ask "Disable Baloo file indexing (recommended for a lean/minimal feel)?"; the
 fi
 
 # ---------------------------------------------------------------------------
-# 8. Reduce Plasma animation speed slightly (snappier "minimal" feel)
-#    Best-effort only — never fails the script if the config tool is missing.
+# 10. Reduce Plasma animation speed slightly (snappier "minimal" feel)
+#     Best-effort only — never fails the script if the config tool is missing.
 # ---------------------------------------------------------------------------
 if ask "Slightly reduce KDE animation speed for a snappier feel?"; then
-    KWRITECONFIG=""
-    if command_exists kwriteconfig6; then
-        KWRITECONFIG="kwriteconfig6"
-    elif command_exists kwriteconfig5; then
-        KWRITECONFIG="kwriteconfig5"
-    fi
-
     if [ -n "$KWRITECONFIG" ]; then
         if run_as_user "$KWRITECONFIG" --file kdeglobals --group KDE --key AnimationDurationFactor 0.5; then
             log_ok "Animation speed reduced (AnimationDurationFactor=0.5)."
@@ -181,10 +166,10 @@ if ask "Slightly reduce KDE animation speed for a snappier feel?"; then
 fi
 
 # ---------------------------------------------------------------------------
-# 9. Stop the system beep — same four independent sources as the XFCE
-#    sibling toolkit, with two KDE-specific differences: X11-only tools
-#    (xset) are skipped on Wayland sessions rather than silently no-op'd,
-#    and KDE's own bell setting lives in kaccessrc, not xfconf.
+# 11. Stop the system beep — same four independent sources as the XFCE
+#     sibling toolkit, with two KDE-specific differences: X11-only tools
+#     (xset) are skipped on Wayland sessions rather than silently no-op'd,
+#     and KDE's own bell setting lives in kaccessrc, not xfconf.
 # ---------------------------------------------------------------------------
 if ask "Silence the system beep/bell (PC speaker, X11/Wayland bell, KDE's own bell setting, and bash's readline bell)?"; then
     # 1. PC speaker kernel driver — OS-level, identical regardless of DE.
@@ -226,14 +211,8 @@ EOF
     #    dump), but that documentation is KDE3/4-era — worth trying
     #    since a stale key is a harmless no-op, not worth trusting
     #    blindly the way the PC-speaker/readline fixes can be.
-    BEEP_KWRITECONFIG=""
-    if command_exists kwriteconfig6; then
-        BEEP_KWRITECONFIG="kwriteconfig6"
-    elif command_exists kwriteconfig5; then
-        BEEP_KWRITECONFIG="kwriteconfig5"
-    fi
-    if [ -n "$BEEP_KWRITECONFIG" ]; then
-        run_as_user "$BEEP_KWRITECONFIG" --file kaccessrc --group Bell --key SystemBell false 2>/dev/null \
+    if [ -n "$KWRITECONFIG" ]; then
+        run_as_user "$KWRITECONFIG" --file kaccessrc --group Bell --key SystemBell false 2>/dev/null \
             && log_ok "KDE's own system-bell setting disabled (kaccessrc)." \
             || log_warn "Couldn't write kaccessrc — check System Settings > Accessibility > Bell manually if you still hear anything KDE-specific."
     else

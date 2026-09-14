@@ -11,25 +11,12 @@
 # =======================================================
 set -uo pipefail
 
-RED="\033[0;31m"; GREEN="\033[0;32m"; YELLOW="\033[1;33m"; CYAN="\033[0;36m"; NC="\033[0m"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/common.sh"
 
-log_info() { echo -e "${CYAN}[*]${NC} $1"; }
-log_ok()   { echo -e "${GREEN}[OK]${NC} $1"; }
-log_warn() { echo -e "${YELLOW}[!]${NC} $1"; }
-log_err()  { echo -e "${RED}[ERROR]${NC} $1"; }
+log_head "VSCodium"
 
-is_installed() {
-    dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -q "install ok installed"
-}
-
-echo -e "${CYAN}=========================================================${NC}"
-echo -e "${CYAN} VSCodium${NC}"
-echo -e "${CYAN}=========================================================${NC}"
-
-if [[ $EUID -eq 0 ]]; then
-    log_err "Do not run this as root."
-    exit 1
-fi
+require_not_root
 
 if is_installed codium; then
     log_ok "VSCodium (codium) is already installed."
@@ -47,13 +34,18 @@ done
 KEYRING="/usr/share/keyrings/vscodium-archive-keyring.gpg"
 SOURCES_FILE="/etc/apt/sources.list.d/vscodium.list"
 
-log_info "Adding VSCodium's GPG key..."
-if wget -qO - "https://gitlab.com/paulcarroty/vscodium-deb-rpm-repo/raw/master/pub.gpg" \
-        | gpg --dearmor | sudo tee "$KEYRING" > /dev/null; then
-    log_ok "Key installed to $KEYRING"
+if [ ! -f "$KEYRING" ]; then
+    log_info "Adding VSCodium's GPG key..."
+    if wget -qO - "https://gitlab.com/paulcarroty/vscodium-deb-rpm-repo/raw/master/pub.gpg" \
+            | gpg --dearmor | sudo tee "$KEYRING" > /dev/null; then
+        sudo chmod 644 "$KEYRING"
+        log_ok "Key installed to $KEYRING"
+    else
+        log_err "Failed to fetch/install the VSCodium GPG key."
+        exit 1
+    fi
 else
-    log_err "Failed to fetch/install the VSCodium GPG key."
-    exit 1
+    log_ok "VSCodium key already present at $KEYRING."
 fi
 
 log_info "Adding VSCodium APT repository..."
@@ -75,4 +67,12 @@ if sudo apt-get install -y codium; then
 else
     log_err "Failed to install codium."
     exit 1
+fi
+
+log_info "Pointing text/plain files at VSCodium (so code/.txt open in the editor)..."
+if ! run_as_user xdg-mime default codium.desktop text/plain; then
+    log_warn "Could not set the text/plain default (xdg-mime unavailable). Set it in"
+    log_warn "System Settings > File Associations > text/plain > Application Preference."
+else
+    log_ok "text/plain now opens in VSCodium by default."
 fi

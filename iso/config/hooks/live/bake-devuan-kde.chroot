@@ -1,0 +1,33 @@
+#!/bin/sh
+# =======================================================
+# bake-devuan-kde.chroot — flavor-bake hook (runs inside the chroot
+# right after package selection, before the binary image is assembled).
+# -------------------------------------------------------
+# Runs the toolkit's own runner against the freshly installed chroot so
+# the resulting ISO ships with the same post-install state a normal
+# desktop run would produce — then exports it to /etc/skel so any user
+# (live "devuan" default or the installer's later user creation) inherits
+# it. DEVMKDE_ISO_BUILD=1 tells scripts/lib/common.sh that we are inside
+# a build chroot (plain root, no SUDO_USER) and prompts are forbidden.
+#
+# Runs best-effort (`|| true`): individual steps that need a live desktop
+# (plasma-apply plugins, qdbus live-reloads) harmlessly no-op/fail here.
+# =======================================================
+set -e
+
+TK=/root/devuan-kde
+[ -d "$TK" ] || { echo "bake: toolkit not at $TK — aborting bake"; exit 0; }
+
+echo "bake: updating package lists for the chroot"
+DEBIAN_FRONTEND=noninteractive apt-get update -y
+
+echo "bake: running toolkit core phase"
+cd "$TK"
+DEVMKDE_ASSUME_YES=1 DEVMKDE_ISO_BUILD=1 DEVMKDE_SKIP_APT_UPDATE=1 \
+    ./run.sh --phase core || true
+
+echo "bake: exporting user config to /etc/skel"
+DEVMKDE_ASSUME_YES=1 DEVMKDE_ISO_BUILD=1 DEVMKDE_SKIP_APT_UPDATE=1 \
+    ./scripts/exportToSkel.sh || true
+
+echo "bake: done"

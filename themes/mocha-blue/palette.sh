@@ -1,0 +1,36 @@
+PALETTE_ID="mocha-blue"
+PALETTE_NAME="Catppuccin Mocha (Blue)"
+PALETTE_SHORT="CatppuccinBlue"
+PALETTE_DESC="Catppuccin Mocha with the calm sapphire/blue accent."
+
+C_BG=1e1e2e
+C_MANTLE=181825
+C_CRUST=11111b
+C_SURFACE0=313244
+C_SURFACE1=45475a
+C_OVERLAY0=6c7086
+C_OVERLAY1=7f849c
+C_TEXT=cdd6f4
+C_SUBTEXT0=a6adc8
+C_SUBTEXT1=bac2de
+
+C_ACCENT=89b4fa
+C_ACCENT_FG=1e1e2e
+C_ACCENT_DIM=a4c7fb
+
+C_0=45475a
+C_1=f38ba8
+C_2=a6e3a1
+C_3=f9e2af
+C_4=89b4fa
+C_5=f5c2e7
+C_6=94e2d5
+C_7=bac2de
+C_8=585b70
+C_9=f38ba8
+C_10=a6e3a1
+C_11=f9e2af
+C_12=89b4fa
+C_13=f5c2e7
+C_14=94e2d5
+C_15=a6adc8

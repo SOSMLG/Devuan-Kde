@@ -1,0 +1,35 @@
+# Devuan KDE ISO — base desktop round
+# Plasma + KDE apps (a hand-picked task in place of the monolithic
+# task-plasma-desktop so the result stays lean, mirroring this toolkit's
+# debloat-first philosophy).
+xserver-xorg
+firefox-esr
+desktop-base
+firmware-linux
+firmware-iwlwifi
+
+# Plasma shell + core apps
+plasma-workspace
+sddm
+network-manager
+plasma-nm
+plasma-desktopthemes-artwork
+konsole
+dolphin
+kate
+kio-extras
+kio-fuse
+kscreen
+bluedevil
+
+# Printing
+cups
+system-config-printer
+plasma-desktop
+
+# Timeshift (the toolkit drives it via its own menu applet)
+timeshift
+
+# Installer the toolkit recommends burning the ISO with
+refractainstaller-base
+refractainstaller-gui

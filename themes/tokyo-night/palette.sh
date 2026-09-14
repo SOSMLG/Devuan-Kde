@@ -1,0 +1,36 @@
+PALETTE_ID="tokyo-night"
+PALETTE_NAME="Tokyo Night"
+PALETTE_SHORT="TokyoNight"
+PALETTE_DESC="Tokyo Night — deep storm blues with bright terminal accents."
+
+C_BG=1a1b26
+C_MANTLE=16161e
+C_CRUST=16161e
+C_SURFACE0=24283b
+C_SURFACE1=2f3549
+C_OVERLAY0=565f89
+C_OVERLAY1=62688f
+C_TEXT=c0caf5
+C_SUBTEXT0=a9b1d6
+C_SUBTEXT1=b4b8d6
+
+C_ACCENT=7aa2f7
+C_ACCENT_FG=1a1b26
+C_ACCENT_DIM=a0b6fc
+
+C_0=15161e
+C_1=f7768e
+C_2=9ece6a
+C_3=e0af68
+C_4=7aa2f7
+C_5=bb9af7
+C_6=7dcfff
+C_7=a9b1d6
+C_8=414868
+C_9=f7768e
+C_10=9ece6a
+C_11=e0af68
+C_12=7aa2f7
+C_13=bb9af7
+C_14=7dcfff
+C_15=c0caf5

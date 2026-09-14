@@ -26,6 +26,26 @@ else
     fi
 fi
 
+# A competing NTP daemon (openntpd ships on some netinstall spins) would
+# fight chrony for the same socket/clock — park it under whatever init
+# this box runs before enabling chrony.
+if is_installed openntpd; then
+    log_info "openntpd detected — parking it so chrony owns the clock."
+    case "$(init_system)" in
+        systemd)
+            sudo systemctl disable --now openntpd >/dev/null 2>&1 || true
+            ;;
+        openrc)
+            sudo rc-service openntpd stop >/dev/null 2>&1 || true
+            sudo rc-update del openntpd default >/dev/null 2>&1 || true
+            ;;
+        *)
+            sudo update-rc.d openntpd disable >/dev/null 2>&1 || true
+            sudo service openntpd stop >/dev/null 2>&1 || true
+            ;;
+    esac
+fi
+
 start_service chrony
 
 # Sanity check — chronyc tracking as a normal user usually works.

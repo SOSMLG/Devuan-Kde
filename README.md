@@ -47,15 +47,26 @@ TrackPoint nub, if you're on a ThinkPad):**
 - **`catppuccinPlasma.sh`** — the official
   [catppuccin/kde](https://github.com/catppuccin/kde) Global Theme
   (prebuilt/pre-rendered by their own CI, unlike Darkly there's no
-  compile step), [ljmill/catppuccin-icons](https://github.com/ljmill/catppuccin-icons)
-  (the same `Catppuccin-SE` set as the XFCE sibling, with the same
-  memory-optimized `Catppuccin-SE-Local` build — see that project's
-  notes on why), and a self-authored "Catppuccin Red" Konsole profile
-  using the official Catppuccin terminal ANSI mapping. **This is the
-  toolkit's single theming step** — it sets application style, color
-  scheme, window decoration, splash, and cursor. (A former companion
-  theming script, `fancyPlasma.sh`, is no longer shipped with this
-  toolkit; Catppuccin is the default look.)
+  compile step). Icons come from **Papirus-Dark** (Debian's
+  `papirus-icon-theme`), the de-facto KDE-native icon set — it ships every
+  Plasma app icon and handles KDE's symlink aliasing properly (the earlier
+  `Catppuccin-SE`/`SE-Local` download from ljmill/catppuccin-icons was a
+  GTK-leaning port whose symlinked app-icon aliases broke under Plasma,
+  leaving generic icons in the launcher/taskbar). The Konsole profile +
+  Plasma color scheme steps are rendered by the **palette
+  engine** (`scripts/lib/theme.sh` + `themes/`) from the same
+  `mocha-red` palette that drives `applyThemes.sh`, so `catppuccinPlasma.sh`
+  and a later palette swap can never drift apart. It also generates a
+  locally-made Catppuccin-toned wallpaper (ImageMagick, no download) —
+  a carry-over from the retired `mintLookPlasma.sh`. **This is the
+  toolkit's default theming step** — it sets application style, color
+  scheme, window decoration, splash, cursor, and icons.
+- **`applyThemes.sh`** — the palette engine's front door: apply or swap
+  any of the 8 shipped palettes (default: `mocha-red`) anytime. Each
+  `themes/<name>/palette.sh` is a single source of truth turned into a
+  matching Konsole scheme + profile, a Plasma `.colors` scheme, and the
+  `kdeglobals` accent — verified byte-identical to the old hand-authored
+  Konsole output.
 - **`bootThemeSetup.sh`** — carries the theme to Plymouth (boot splash)
   and GRUB (same as the XFCE sibling, both DE-agnostic), plus the SDDM
   login screen via [catppuccin/sddm](https://github.com/catppuccin/sddm)
@@ -63,6 +74,8 @@ TrackPoint nub, if you're on a ThinkPad):**
   manager). Same invasiveness disclaimer as the XFCE version: it's the
   only script here touching `/etc/default/grub` and the initramfs, every
   edit is backed up, and it checks for GRUB/SDDM before touching either.
+- **`fancyPlasma.sh`** and **`plasmaPanel.sh`** return as *optional
+  finishes* — see below.
 - **`bluetoothSetup.sh`** — bluez, Bluedevil (KDE's native applet — no
   Blueman, that would just be two tray icons fighting over one adapter),
   and the part that actually trips people up: Bluetooth *audio*
@@ -87,15 +100,26 @@ TrackPoint nub, if you're on a ThinkPad):**
 
 ```
 devuan-kde-setup/
-├── run.sh                        # main entry point — run this (flags: --list/--only/--yes/--verify)
-├── iso/                          # build the whole toolkit as a live ISO (Freia + KDE + OpenRC)
+├── run.sh                        # main entry point — run this (flags: --list/--only/--yes/--verify/--phase)
+├── install.sh                    # one-command wrapper: default --full + verify (sudo ./install.sh)
+├── iso/                          # build the whole toolkit as a Devuan Excalibur + KDE ISO (scaffold)
 │   ├── build.sh                  # live-build runner (sudo ./iso/build.sh)
-│   ├── config/                   # seed config: package lists + bake/OpenRC hooks + skel setup
+│   ├── config/                   # auto/config + package lists + bake/OpenRC hooks + skel setup
 │   └── README.md                 # ISO build/test/install docs
+├── themes/                       # palette engine data — one palette per dir, single source of truth
+│   ├── _base/tpl/                # Konsole/.colors/kdeglobals templates (hex + decimal expansions)
+│   └── {mocha-red,mocha-blue,frappe,nord,dracula,tokyo-night,gruvbox,solarized}/palette.sh
 ├── scripts/
+│   ├── lib/common.sh             # shared helpers sourced by every script
+│   ├── lib/theme.sh               # palette engine: hex→RGB, applies Konsole+colors+kdeglobals accent
 │   ├── addUserToGroups.sh        # input/video/render groups
 │   ├── kdeDebloat.sh             # remove games/edu/PIM bloat, Kate/Konqueror/Dragon Player, disable Baloo
-│   ├── catppuccinPlasma.sh       # Catppuccin (Mocha, Red) Global Theme, icons, Konsole profile
+│   ├── catppuccinPlasma.sh       # Catppuccin Global Theme + icons + palette engine default (mocha-red)
+│   ├── applyThemes.sh            # swap/apply any palette anytime (themes/<name>/)
+│   ├── fancyPlasma.sh            # (optional) Inter font, blur, Coverflow, night color, KWin effects
+│   ├── plasmaPanel.sh            # (optional) clean single floating panel + pinned apps, via plasmashell scripting API
+│   ├── kdeHotkeys.sh             # Meta+Return terminal, Meta+f files, Ctrl+Meta+e editor, Ctrl+Shift+Esc monitor
+│   ├── dolphinServiceMenus.sh    # KIO servicemenus: compress→PDF/image, open in VS Code / OpenCode
 │   ├── bootThemeSetup.sh         # Plymouth splash + GRUB theme + SDDM login screen (boot → login)
 │   ├── touchpadTrackpointFix.sh  # usbhid mousepoll fix + optional libinput tuning
 │   ├── hardwareSupport.sh        # WiFi/BT firmware, CPU microcode, fwupd firmware updates
@@ -110,6 +134,9 @@ devuan-kde-setup/
 │   ├── desktopEssentials.sh      # Flatpak/Discover, PackageKit, printing, Partition Manager, firewall panel
 │   ├── timeshiftSetup.sh         # Timeshift system snapshot/restore tool
 │   ├── networkTimeSync.sh        # NTP time sync via chrony (works under any init)
+│   ├── ssdTrim.sh                # weekly fstrim via cron (init-agnostic)
+│   ├── systemUpdate.sh           # safe full-upgrade with rolling backup of dpkg state
+│   ├── updateNotifier.sh         # cron + notify-send update checks, no daemon
 │   ├── installPhotogimp.sh       # (optional) GIMP + PhotoGIMP layout/theme, fetched live from GitHub
 │   ├── installVscodium.sh        # (optional) VSCodium via official APT repo
 │   ├── vscodiumDevSetup.sh       # (optional) VSCodium C++/Python dev environment
@@ -121,7 +148,6 @@ devuan-kde-setup/
 │   ├── configBackup.sh           # backup/restore/list your toolkit's per-user config
 │   ├── systemMaintenance.sh      # apt cleanup, dead ~/.local/bin symlinks, optional upgrade
 │   ├── exportToSkel.sh           # copy baked per-user defaults into /etc/skel (ISO & multi-user)
-│   ├── lib/common.sh             # shared helpers sourced by every script
 │   └── skills/devuan-kde-SKILL.md # system context file for AI coding agents (OpenCode/Claude Code)
 ├── butterbash/                   # bundled copy of butterbash-main, used offline
 └── README.md
@@ -156,7 +182,13 @@ bash scripts/touchpadTrackpointFix.sh
 ./run.sh --yes                        # unattended: every prompt takes its default
 ./run.sh --no-update                  # skip run.sh's single apt-get update
 ./run.sh --verify                     # after the run, run scripts/verifySetup.sh
+./run.sh --phase core                 # run only one section: core / sysmgmt / optional
+./run.sh --full                       # an alias for --phase core --phase sysmgmt --phase optional
 ```
+
+`install.sh` wraps `run.sh` for the "just do everything" crowd: it exports
+`DEVMKDE_ASSUME_YES=1`, runs `--full` + `--verify`, and passes any extra
+argument through to `run.sh`.
 
 One detail worth knowing: the runner refreshes `apt` **once** up front and
 then exports `DEVMKDE_SKIP_APT_UPDATE=1`, so the ~13 scripts that otherwise
@@ -186,14 +218,61 @@ Gwenview, Ark, System Settings, SDDM, etc. are never touched.
 Every category is its own y/N prompt, so you can keep the games or the
 PIM suite if you actually use them.
 
-**catppuccinPlasma.sh** — the toolkit's theming step. Installs
+**catppuccinPlasma.sh** — the toolkit's default theming step. Installs
 the official [catppuccin/kde](https://github.com/catppuccin/kde) Global
 Theme (Mocha flavour, Red accent, Classic window decoration — no compile
-step, since Catppuccin ships pre-rendered), the same
-`Catppuccin-SE`/`Catppuccin-SE-Local` icon pipeline as this toolkit's XFCE
-sibling project, and a self-authored "Catppuccin Red" Konsole profile.
-Re-run it after installing
-new apps to refresh the icon set.
+step, since Catppuccin ships pre-rendered), applies **Papirus-Dark** as
+the active icon theme (Debian's `papirus-icon-theme` — the KDE-native set,
+replacing the old `Catppuccin-SE`/`SE-Local` GTK-leaning download), renders
+the Konsole scheme + profile + Plasma color scheme + accent from the
+`mocha-red` palette via the engine — the same source `applyThemes.sh`
+uses — and optionally generates a Catppuccin-toned wallpaper locally
+(ImageMagick, no download; applying it to the live desktop is a separate
+default-off prompt).
+
+**applyThemes.sh** — the palette engine's front door. Ships 8 palettes
+(`themes/mocha-red` default, plus `mocha-blue`, `frappe`, `nord`,
+`dracula`, `tokyo-night`, `gruvbox`, `solarized`), each a
+`palette.sh` of plain hex values that gets expanded through
+`themes/_base/tpl/` into Konsole scheme + profile, a Plasma `.colors`
+scheme, and the `kdeglobals` accent (writes `konsolerc` + `kdeglobals`,
+then live-reloads what it can). Usage: `applyThemes.sh` (interactive),
+`applyThemes.sh nord` (direct), `applyThemes.sh --list`. The active
+palette is tracked in
+`~/.local/state/devuan-kde-setup/current-theme` so `verifySetup.sh` can
+check the right files. Adding a palette is adding one directory — the
+engine, templates, and verify stay untouched.
+
+**fancyPlasma.sh** *(optional alternate look)* — a productivity/theming
+pass independent of Catppuccin: the Inter font, borderless maximized
+windows, KWin blur, Coverflow TabBox, automatic Night Color, and an
+opt-in Burn My Windows effect. Designed to layer on top of any palette.
+
+**plasmaPanel.sh** *(optional)* — rebuilds the panel into one clean,
+organized, floating bar with your pinned apps (Konsole, Dolphin, Firefox,
+VLC, Okular — only what's installed) plus icon-tasks, tray, and a compact
+clock. It uses the same **plasmashell scripting API** that KDE's own
+migration scripts use (`createPanel()`/`addWidget()`/`writeConfig()`), so
+it never hand-edits `plasma-org.kde.plasma.desktop-appletsrc`; the config
+is backed up first, and `--dry-run` prints the exact payload without
+touching the session.
+
+**kdeHotkeys.sh** — the hotkeys that make a second DE feel like "home":
+Meta+Return → terminal, Meta+f → files, Ctrl+Meta+e → editor,
+Ctrl+Shift+Escape → system monitor. Written as a real
+`~/.config/khotkeysrc` + `~/.config/kglobalshortcutsrc` set (the exact
+layout KHotkeys itself produces), verified against the box's own
+dotfiles, with fixed UUIDs and merge-rather-than-clobber behavior.
+
+**dolphinServiceMenus.sh** — KIO servicemenus for Dolphin:
+compress-to-PDF/compressed image, plus "Open in VS Code" and "Open in
+OpenCode" entries that launch from a terminal (`Terminal=true`), wired
+through small wrappers in `~/.local/bin`.
+
+**ssdTrim.sh** / **systemUpdate.sh** / **updateNotifier.sh** *(sysmgmt
+section, init-agnostic)* — weekly `fstrim` via cron; a careful
+`full-upgrade` with a rolling backup of dpkg state; and a cron-driven
+`notify-send` update notifier that needs no background daemon.
 
 **bootThemeSetup.sh** — the part before you reach Plasma at all: a
 Catppuccin Plymouth boot splash, a Catppuccin GRUB menu theme, and the
@@ -317,15 +396,14 @@ part its own y/N prompt:
   listening sshd and allows port 22 through *before* flipping to
   default-deny, so this can't lock you out of your own box over SSH).
 
-**catppuccinPlasma.sh was previously paired with a second theming script,
-`fancyPlasma.sh`** (a Darkly/KWin-Blur look pulled from a YouTube
-walkthrough), which is no longer shipped with this toolkit — Catppuccin
-is now the single theming step. Any archived instructions referencing it
-can be safely ignored; nothing depends on it. If you'd like that
-specific look back, the pieces it used (the [Bali10050/Darkly](https://github.com/Bali10050/Darkly)
-application style, KWin Blur + Magic Lamp effects via `kwinrc`'s `Plugins`
-group, and `krunnerrc`'s `FreeFloating` key) are all individually
-documented and trivially reproducible by hand.
+**catppuccinPlasma.sh is the default theming step, `applyThemes.sh` handles
+swapping palettes, and `fancyPlasma.sh`/`plasmaPanel.sh` are optional
+finishes** — there is no longer a single monolithic theme story.
+If you'd like a specific element back by itself (for example the
+[Bali10050/Darkly](https://github.com/Bali10050/Darkly) application style,
+KWin Blur or Magic Lamp effects via `kwinrc`'s `Plugins` group, or
+`krunnerrc`'s `FreeFloating` key), those are all individually documented
+against `fancyPlasma.sh`'s source.
 
 **timeshiftSetup.sh** — installs Timeshift, Mint's signature "snapshot
 before a risky change, roll back in a couple clicks if it breaks"
@@ -471,7 +549,9 @@ exactly what the toolkit claims to set up: `input`/`video`/`render` group
 membership, the key packages (VLC, TLP, firmware, codecs, firefox-esr,
 fonts, fastfetch, flatpak, timeshift, bluez, fwupd), the JetBrainsMono Nerd
 Font, Firefox's hardened `user.js`, the Catppuccin theme, and that
-bluetooth/tlp/cups/chrony are running. Runs read-only, prints
+bluetooth/tlp/cups/chrony are running. The Konsole/color-scheme checks read
+the active palette's `PALETTE_SHORT` from the theme-engine marker, so
+verifying stays accurate after a `applyThemes.sh` palette swap. Runs read-only, prints
 `PASS/FAIL/WARN`, exits non-zero if anything critical failed. Optional
 packages (gaming, messaging, dev tools) are `WARN`, not `FAIL`, so a lean
 install doesn't false-alarm.
@@ -493,17 +573,21 @@ libraries` transitional package if it lingers, deletion of dead
 **exportToSkel.sh** — copies the baked per-user defaults (fonts, Konsole
 profile/colors, fastfetch config, `.desktop` entries) into `/etc/skel`, so
 *every future account* on the machine starts with them. Used by the ISO
-build; also useful on a multi-user box. The ISO bake runs it with
-`--user lbuilder --force`; `--force` is required to overwrite existing
-skel files, and `--list`/`--dry-run` preview without changing anything.
+build (the bake hook runs it inside the chroot); also useful on a
+multi-user box. `--force` is required to overwrite existing skel files,
+and `--list`/`--dry-run` preview without changing anything.
 
 ## Building it as an ISO
 
-See **`iso/README.md`**. `sudo ./iso/build.sh` produces a reproducible
-Devuan Freia + KDE Plasma **OpenRC** live ISO with everything above
-pre-baked (via `config/hooks/normal/*.chroot` running the toolkit with
-`DEVMKDE_ASSUME_YES=1`), `refractainstaller` for install-to-disk, and
-`SHA256SUMS` alongside the image. An optional GitHub Actions recipe is
+See **`iso/README.md`**. `sudo ./iso/build.sh` wraps Devuan's `live-build`
+fork to produce a Devuan Excalibur amd64 ISO with KDE Plasma and the
+toolkit's end state **pre-baked**: `iso/config/hooks/live/*.chroot` runs
+`run.sh --phase core` + `exportToSkel.sh` inside the chroot with
+`DEVMKDE_ASSUME_YES=1 DEVMKDE_ISO_BUILD=1` (so prompts auto-answer and the
+root-only helpers tolerate a plain-root build chroot), injecting the
+toolkit itself via `includes.chroot`. `refractainstaller` is in the image
+for install-to-disk. **Status: faithful scaffold, not yet burned on a
+build host** — see `iso/README.md`. An optional GitHub Actions recipe is
 included (`iso.yml.pending`) but disabled by default — rename it to
 `.github/workflows/iso.yml` to let CI build the ISO for you.
 
@@ -515,6 +599,7 @@ included (`iso.yml.pending`) but disabled by default — rename it to
   |---|---|
   | `DEVMKDE_ASSUME_YES=1` | every `ask()` takes its default — used by `run.sh --yes` and the ISO bake hooks |
   | `DEVMKDE_SKIP_APT_UPDATE=1` | `apt_update()` is a no-op — exported by `run.sh` after its single refresh; scripts skip their own `apt-get update` |
+  | `DEVMKDE_ISO_BUILD=1` | let scripts run as plain root inside a build chroot (skips `require_not_root`) — set by `iso/config/hooks/live/bake-devuan-kde.chroot` |
   | `CONFIG_BACKUP_DIR=/path` | where `configBackup.sh` writes/reads archives (default `$HOME`) |
   | `SKEL_DIR=/path` | target dir for `exportToSkel.sh` (default `/etc/skel`) |
   | `DEVUAN_MIRROR=http://...` | mirror used by `iso/build.sh` for reproducible ISO rebuilds |

@@ -20,14 +20,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/common.sh
 source "$SCRIPT_DIR/lib/common.sh"
 
-if [ "$(id -u)" -eq 0 ]; then
-    log_err "Do not run this as root."
-    exit 1
-fi
+require_not_root
 
-echo -e "${CYAN}=========================================================${NC}"
-echo -e "${CYAN} Bluetooth Setup${NC}"
-echo -e "${CYAN}=========================================================${NC}"
+log_head "Bluetooth Setup"
 
 log_info "Refreshing package lists..."
 apt_update || { log_err "apt-get update failed, aborting."; exit 1; }
@@ -99,11 +94,15 @@ if ask "Set up Bluetooth audio (A2DP stereo sound for headsets/earbuds)?"; then
     esac
 
     # Restart the user audio session so the newly installed module is
-    # actually loaded without needing a full logout.
-    if command_exists systemctl; then
+    # actually loaded without needing a full logout. Only meaningful on
+    # systemd; on OpenRC/sysvinit (Devuan) the per-user audio session is
+    # tied to the login, so a logout/login picks it up instead.
+    if [ -d /run/systemd/system ] && command_exists systemctl; then
         systemctl --user restart pipewire pipewire-pulse wireplumber 2>/dev/null \
             || systemctl --user restart pulseaudio 2>/dev/null \
             || true
+    else
+        log_warn "Non-systemd session detected — Bluetooth audio will activate after a logout/login."
     fi
     log_ok "Bluetooth audio support installed. Pair your headset/earbuds via System Settings >"
     log_ok "Bluetooth or the tray icon, then pick them under Audio Volume as the output device."

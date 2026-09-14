@@ -13,9 +13,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/common.sh
 source "$SCRIPT_DIR/lib/common.sh"
 
-echo -e "${CYAN}=========================================================${NC}"
-echo -e "${CYAN} Useful Apps${NC}"
-echo -e "${CYAN}=========================================================${NC}"
+require_not_root
+
+log_head "Useful Apps"
 
 log_info "Refreshing package lists..."
 apt_update || { log_err "apt-get update failed, aborting."; exit 1; }
@@ -68,9 +68,7 @@ if ask "Install TLP (laptop battery/power management)?" "N"; then
 
     install_pkgs "TLP" tlp tlp-rdw
     if is_installed tlp; then
-        sudo systemctl enable --now tlp 2>/dev/null \
-            || sudo service tlp start 2>/dev/null \
-            || log_warn "Could not start tlp service automatically — check your init system (systemd vs sysvinit/openrc on Devuan)."
+        start_service tlp
         log_ok "TLP installed and running. Check status any time with: sudo tlp-stat -s"
 
         # Charge thresholds only exist on hardware that exposes them

@@ -1,12 +1,21 @@
 #!/usr/bin/env bash
 # =======================================================
-# Catppuccin Plasma — the toolkit's theming step
+# Catppuccin Plasma — the toolkit's unified theming step
 # -------------------------------------------------------
-# Catppuccin Mocha, Red accent — the same palette/identity used across
-# this toolkit's XFCE sibling project. Uses the OFFICIAL catppuccin/kde
-# Global Theme installer (github.com/catppuccin/kde) — prebuilt/pre-
-# rendered by their own CI (Whiskers), so unlike a from-source KDE
-# theme there's no compile step here at all.
+# The whole visual identity in one script:
+#   1. Catppuccin Global Theme (app style, color scheme, window
+#      decoration, splash, cursor) from the official catppuccin/kde
+#      installer, prebuilt by their own CI.
+#   2. A proper KDE-native icon set — Papirus-Dark (Debian's own
+#      papirus-icon-theme), the de-facto icon theme among Plasma users:
+#      it ships every Plasma app icon, uses real KDE-friendly symlink
+#      handling, and tinters dark. (Replaces the earlier Catppuccin-SE
+#      "Local" build, which is a GTK-leaning Papirus port whose symlinked
+#      app-icon aliases consistently break under Plasma.)
+#   3. The palette engine: Konsole scheme + profile + Plasma color scheme
+#      + accent, rendered from themes/mocha-red by scripts/lib/theme.sh.
+#   4. A locally generated Catppuccin-toned wallpaper (ImageMagick,
+#      no download).
 #
 # catppuccin/kde's own install.sh handles Global Theme + colorscheme +
 # window decoration + cursor theme all in one documented, verified call
@@ -90,206 +99,103 @@ if [ "$GLOBAL_THEME_OK" -eq 1 ] && command_exists plasma-apply-lookandfeel; then
 fi
 
 # ---------------------------------------------------------------------------
-# 2. Icons — ljmill/catppuccin-icons "Catppuccin-SE", same source and same
-#    memory-optimized "Local" variant as this toolkit's XFCE sibling.
-#    catppuccin/kde's Global Theme doesn't ship app icons itself (that's
-#    a separate concern in the Catppuccin ecosystem), so this fills that
-#    gap the same way.
+# 2. Icons — Papirus-Dark (Debian's papirus-icon-theme). The de-facto
+#    icon theme for KDE: every Plasma app ships a Papirus icon, symlink
+#    aliasing resolves properly under Plasma, and the -Dark variant fits
+#    the Catppuccin look. Replaces the earlier Catppuccin-SE/SE-Local
+#    download (a GTK-leaning Papirus port whose symlinked app-icon
+#    aliases were dropped by the old Local builder, leaving generic
+#    icons in the launcher/taskbar — the exact thing reported broken).
 # ---------------------------------------------------------------------------
-ICONS_DIR="$(getent passwd "$ACTUAL_USER" | cut -d: -f6)/.local/share/icons"
-ICON_BASE="$ICONS_DIR/Catppuccin-SE"
-ACTIVE_ICON_THEME=""
-if ask "Install the Catppuccin-SE icon set (ljmill/catppuccin-icons)?"; then
-    run_as_user mkdir -p "$ICONS_DIR"
-    log_info "Resolving latest release..."
-    ICON_URL=$(curl -fsSL https://api.github.com/repos/ljmill/catppuccin-icons/releases/latest \
-        | grep -oP '"browser_download_url":\s*"\K[^"]+Catppuccin-SE\.tar\.bz2' | head -1)
-    [ -z "$ICON_URL" ] && { log_warn "GitHub API lookup failed, using a fallback known-good release URL."; \
-        ICON_URL="https://github.com/ljmill/catppuccin-icons/releases/download/v0.2.0/Catppuccin-SE.tar.bz2"; }
-
-    ICON_TARBALL="$WORK_DIR/Catppuccin-SE.tar.bz2"
-    if curl -fsSL --progress-bar -o "$ICON_TARBALL" "$ICON_URL"; then
-        rm -rf "$ICON_BASE"
-        if tar -xjf "$ICON_TARBALL" -C "$ICONS_DIR"; then
-            if [ ! -d "$ICON_BASE" ]; then
-                FOUND=$(find "$ICONS_DIR" -maxdepth 2 -type d -iname "Catppuccin-SE" | head -1)
-                [ -n "$FOUND" ] && [ "$FOUND" != "$ICON_BASE" ] && mv "$FOUND" "$ICON_BASE"
-            fi
-            chown -R "$ACTUAL_USER" "$ICON_BASE" 2>/dev/null || true
-            log_ok "Catppuccin-SE installed to $ICON_BASE ($(du -sh "$ICON_BASE" 2>/dev/null | cut -f1))"
-
-            # Lean local variant, same trick as the XFCE sibling: keep the
-            # small UI-chrome categories wholesale, only pull app icons
-            # for software actually installed, trim Inherits= to
-            # Breeze+hicolor (KDE's own base, not Adwaita, since Breeze
-            # is what's guaranteed present on a KDE system).
-            LOCAL_ICON_DIR="$ICONS_DIR/Catppuccin-SE-Local"
-            rm -rf "$LOCAL_ICON_DIR"
-            run_as_user mkdir -p "$LOCAL_ICON_DIR"
-
-            DESIRED_ICONS="$WORK_DIR/desired-icons.txt"
-            grep -h '^Icon=' /usr/share/applications/*.desktop \
-                "$(getent passwd "$ACTUAL_USER" | cut -d: -f6)/.local/share/applications"/*.desktop 2>/dev/null \
-                | sed 's/^Icon=//' | sort -u > "$DESIRED_ICONS"
-            cat >> "$DESIRED_ICONS" << 'EOF'
-plasmashell
-systemsettings
-konsole
-dolphin
-kate
-firefox
-firefox-esr
-vlc
-EOF
-            sort -u -o "$DESIRED_ICONS" "$DESIRED_ICONS"
-            log_info "Matching against $(wc -l < "$DESIRED_ICONS") installed app icon names..."
-
-            KEEP_CATS=(places status actions categories devices mimetypes emblems panel preferences)
-            APPS_COPIED=0
-            for size_dir in "$ICON_BASE"/*/; do
-                [ -d "$size_dir" ] || continue
-                size_name=$(basename "$size_dir")
-                [ "$size_name" = "cursors" ] && continue
-                for cat in "${KEEP_CATS[@]}"; do
-                    if [ -d "${size_dir}${cat}" ]; then
-                        mkdir -p "$LOCAL_ICON_DIR/$size_name"
-                        cp -r "${size_dir}${cat}" "$LOCAL_ICON_DIR/$size_name/" 2>/dev/null
-                    fi
-                done
-                if [ -d "${size_dir}apps" ]; then
-                    mkdir -p "$LOCAL_ICON_DIR/$size_name/apps"
-                    while IFS= read -r -d '' f; do
-                        base="$(basename "$f")"; name="${base%.*}"
-                        if grep -qxF "$name" "$DESIRED_ICONS"; then
-                            cp "$f" "$LOCAL_ICON_DIR/$size_name/apps/" 2>/dev/null
-                            APPS_COPIED=$((APPS_COPIED + 1))
-                        fi
-                    done < <(find "${size_dir}apps" -maxdepth 1 -type f -print0 2>/dev/null)
-                fi
-            done
-
-            if [ -f "$ICON_BASE/index.theme" ]; then
-                cp "$ICON_BASE/index.theme" "$LOCAL_ICON_DIR/index.theme"
-                sed -i 's/^Inherits=.*/Inherits=breeze,hicolor/' "$LOCAL_ICON_DIR/index.theme"
-                sed -i 's/^Name=.*/Name=Catppuccin-SE-Local/' "$LOCAL_ICON_DIR/index.theme"
-            fi
-            chown -R "$ACTUAL_USER" "$LOCAL_ICON_DIR" 2>/dev/null || true
-            command_exists gtk-update-icon-cache && gtk-update-icon-cache -f -t "$LOCAL_ICON_DIR" 2>/dev/null || true
-
-            log_ok "Catppuccin-SE-Local built: $APPS_COPIED matched app icons."
-            log_ok "Size: $(du -sh "$ICON_BASE" 2>/dev/null | cut -f1) (full, kept as fallback) -> $(du -sh "$LOCAL_ICON_DIR" 2>/dev/null | cut -f1) (Local, active)."
-            log_warn "Anything not in your installed-apps list falls back to Breeze — rerun this script"
-            log_warn "after installing new apps to refresh it."
-            ACTIVE_ICON_THEME="Catppuccin-SE-Local"
-        else
-            log_err "Extraction failed."
-        fi
+ICONS_OK=0
+if ask "Install the Papirus-Dark KDE icon theme (Debian package) and set it active?"; then
+    if apt-cache show papirus-icon-theme >/dev/null 2>&1; then
+        install_pkgs "Papirus KDE icon theme" papirus-icon-theme
+        ICONS_OK=1
     else
-        log_err "Icon download failed. Skipping icon theme."
+        log_warn "papirus-icon-theme isn't in your configured repos — keeping the current icon theme."
     fi
 fi
 
-if [ -n "$ACTIVE_ICON_THEME" ]; then
-    kwrite_user --file kdeglobals --group Icons --key Theme "$ACTIVE_ICON_THEME"
+if [ "$ICONS_OK" -eq 1 ]; then
+    kwrite_user --file kdeglobals --group Icons --key Theme "papirus-dark"
     if command_exists plasma-changeicons; then
-        run_as_user plasma-changeicons "$ACTIVE_ICON_THEME" >/dev/null 2>&1 \
-            && log_ok "Icon theme applied live: $ACTIVE_ICON_THEME" \
-            || log_warn "Icon theme set in kdeglobals — takes effect at next login if it didn't apply live."
+        run_as_user plasma-changeicons "papirus-dark" >/dev/null 2>&1 \
+            && log_ok "Icon theme applied live: papirus-dark" \
+            || log_warn "Icon theme set in kdeglobals (papirus-dark) — takes effect at next login."
     else
-        log_warn "Icon theme set in kdeglobals ($ACTIVE_ICON_THEME) — takes effect at next login."
+        log_warn "Icon theme set in kdeglobals (papirus-dark) — takes effect at next login."
     fi
 fi
 
 # ---------------------------------------------------------------------------
-# 3. Konsole "Catppuccin Red" profile — self-authored (not a downloaded
-#    file, so there's
-#    nothing here whose contents you can't read in two seconds). Uses the
-#    official Catppuccin Mocha terminal ANSI mapping, RGB triples (Konsole
-#    colorscheme files use decimal R,G,B, not hex).
+# 3. Palette engine — Konsole "Catppuccin Red" profile + the matching
+#    Plasma color scheme and accent, both rendered from themes/mocha-red/
+#    by scripts/lib/theme.sh (single palette source of truth; Konsole
+#    ANSI colors, .colors groups and the accent all derive from it).
 # ---------------------------------------------------------------------------
-if ask "Create a 'Catppuccin Red' Konsole profile and set it as default?"; then
-    HOME_DIR=$(getent passwd "$ACTUAL_USER" | cut -d: -f6)
-    KONSOLE_DIR="$HOME_DIR/.local/share/konsole"
-    run_as_user mkdir -p "$KONSOLE_DIR"
-
-    SCHEME_FILE="$KONSOLE_DIR/CatppuccinRed.colorscheme"
-    run_as_user tee "$SCHEME_FILE" > /dev/null << 'EOF'
-[General]
-Description=Catppuccin Red
-Opacity=0.92
-Wallpaper=
-
-[Background]
-Color=30,30,46
-
-[BackgroundIntense]
-Color=30,30,46
-
-[Foreground]
-Color=205,214,244
-
-[ForegroundIntense]
-Color=205,214,244
-
-[Color0]
-Color=69,71,90
-[Color0Intense]
-Color=88,91,112
-
-[Color1]
-Color=243,139,168
-[Color1Intense]
-Color=243,139,168
-
-[Color2]
-Color=166,227,161
-[Color2Intense]
-Color=166,227,161
-
-[Color3]
-Color=249,226,175
-[Color3Intense]
-Color=249,226,175
-
-[Color4]
-Color=137,180,250
-[Color4Intense]
-Color=137,180,250
-
-[Color5]
-Color=245,194,231
-[Color5Intense]
-Color=245,194,231
-
-[Color6]
-Color=148,226,213
-[Color6Intense]
-Color=148,226,213
-
-[Color7]
-Color=186,194,222
-[Color7Intense]
-Color=166,173,200
-EOF
-    log_ok "Colorscheme written to $SCHEME_FILE"
-
-    PROFILE_FILE="$KONSOLE_DIR/CatppuccinRed.profile"
-    run_as_user tee "$PROFILE_FILE" > /dev/null << 'EOF'
-[Appearance]
-ColorScheme=CatppuccinRed
-Font=Monospace,11,-1,5,50,0,0,0,0,0
-
-[General]
-Name=Catppuccin Red
-Parent=FALLBACK/
-EOF
-    log_ok "Profile written to $PROFILE_FILE"
-
-    kwrite_user --file konsolerc --group "Desktop Entry" --key DefaultProfile "CatppuccinRed.profile" \
-        && log_ok "Set as the default Konsole profile."
+if ask "Create the 'Catppuccin Red' Konsole profile + Plasma color scheme (palette engine)?"; then
+    # shellcheck source=lib/theme.sh
+    source "$SCRIPT_DIR/lib/theme.sh"
+    apply_palette "mocha-red" || { log_err "Palette apply failed."; exit 1; }
     log_info "Existing open Konsole windows won't pick this up until you open a new tab/window."
 else
-    log_warn "Skipped the Konsole profile."
+    log_warn "Skipped the palette engine step."
+fi
+
+# ---------------------------------------------------------------------------
+# 4. Wallpaper — generated locally (no download needed), a Catppuccin
+#    Mocha-toned gradient with a red accent glow, carries over the
+#    ImageMagick generator from the retired mintLookPlasma.sh. Skips
+#    cleanly if ImageMagick isn't present rather than force-installing it.
+# ---------------------------------------------------------------------------
+HOME_DIR="$(getent passwd "$ACTUAL_USER" | cut -d: -f6)"
+WALLPAPER_PATH="$HOME_DIR/.local/share/backgrounds/devuan-kde-catppuccin.png"
+if ask "Generate a Catppuccin Mocha-toned wallpaper (local, no download — needs ImageMagick)?"; then
+    if ! command_exists convert; then
+        install_pkgs "ImageMagick" imagemagick
+    fi
+    if command_exists convert; then
+        run_as_user mkdir -p "$(dirname "$WALLPAPER_PATH")"
+        # Mocha base fading to mantle, with the Catppuccin red accent glow.
+        if run_as_user convert -size 1920x1080 gradient:'#1e1e2e'-'#181825' \
+            \( -size 1920x1080 xc:none -fill '#f38ba8' -draw "circle 1600,900 1900,900" -blur 0x200 \) \
+            -compose over -composite "$WALLPAPER_PATH"; then
+            log_ok "Wallpaper generated at $WALLPAPER_PATH"
+        else
+            log_warn "ImageMagick composite failed — skipping wallpaper (cosmetic only)."
+            WALLPAPER_PATH=""
+        fi
+    else
+        log_warn "ImageMagick unavailable — skipping wallpaper generation."
+        WALLPAPER_PATH=""
+    fi
+fi
+
+# ---------------------------------------------------------------------------
+# Apply the wallpaper to the current Plasma session. plasma-apply-
+# wallpaperimage (Plasma 5.18+) is the supported one-liner; falls back
+# to a plasmashell dbus script on older versions. Not applied by default
+# — it changes the live desktop, which is a taste call.
+# ---------------------------------------------------------------------------
+if [ -n "$WALLPAPER_PATH" ] && [ -f "$WALLPAPER_PATH" ] && ask "Apply this wallpaper to your Plasma desktop now?" "N"; then
+    if command_exists plasma-apply-wallpaperimage; then
+        run_as_user plasma-apply-wallpaperimage "$WALLPAPER_PATH" >/dev/null 2>&1 \
+            && log_ok "Wallpaper applied to all screens." \
+            || log_warn "Could not apply the wallpaper via plasma-apply-wallpaperimage — set it manually in System Settings > Wallpaper."
+    elif command_exists qdbus && pgrep -x plasmashell >/dev/null 2>&1; then
+        run_as_user qdbus org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript "{
+            var desktops = desktops();
+            for (var i = 0; i < desktops.length; i++) {
+                desktops[i].wallpaperPlugin = 'org.kde.image';
+                desktops[i].currentConfigGroup = ['Wallpaper', 'org.kde.image', 'General'];
+                desktops[i].writeConfig('Image', 'file://$WALLPAPER_PATH');
+            }
+        }" >/dev/null 2>&1 && log_ok "Wallpaper applied to all desktops via plasmashell." \
+            || log_warn "Could not apply the wallpaper — set it manually in System Settings > Wallpaper."
+    else
+        log_warn "No session / wallpaper tooling available — apply $WALLPAPER_PATH manually later."
+    fi
 fi
 
 # ---------------------------------------------------------------------------
@@ -303,4 +209,4 @@ done
 echo -e "${GREEN}Catppuccin Plasma step complete.${NC}"
 log_warn "Log out and back in for anything that didn't visibly apply live to fully settle."
 log_info "This is the toolkit's theming step. Re-run it (or swap themes in System Settings >"
-log_info "Appearance > Global Themes) to change the look at any time."
+log_info "Appearance > Global Themes and Icons > Icons) to change the look at any time."

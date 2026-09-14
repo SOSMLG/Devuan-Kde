@@ -12,19 +12,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/common.sh
 source "$SCRIPT_DIR/lib/common.sh"
 
-if [ "$(id -u)" -eq 0 ]; then
-    log_err "Do not run this as root."
-    exit 1
-fi
+require_not_root
 
 if ! command -v sudo &>/dev/null; then
     log_err "sudo not found."
     exit 1
 fi
 
-echo -e "${CYAN}=========================================================${NC}"
-echo -e "${CYAN} fastfetch${NC}"
-echo -e "${CYAN}=========================================================${NC}"
+log_head "fastfetch"
 
 # ---------------------------------------------------------------------------
 # 1. Install fastfetch
@@ -62,13 +57,14 @@ if ask "Pull curated fastfetch presets (config/minimal/fancy/neon/debian-red/jus
         wget -q "$BASE_URL/$img" -O "$FF_DIR/$img" || log_warn "  failed to fetch $img (continuing)"
     done
 
-    # neon as the default preset — switch any time with:
-    #   cp ~/.config/fastfetch/<preset>.jsonc ~/.config/fastfetch/config.jsonc
-    if [[ -f "$FF_DIR/neon.jsonc" ]]; then
+    # Set the default preset — but never clobber an existing hand-tuned
+    # config.jsonc; on a fresh install the loop above already fetched one.
+    if [ -f "$FF_DIR/neon.jsonc" ] && [ ! -f "$FF_DIR/config.jsonc" ]; then
         cp "$FF_DIR/neon.jsonc" "$FF_DIR/config.jsonc"
         log_ok "Presets installed to $FF_DIR (neon set as default)"
     else
-        log_warn "neon.jsonc didn't download — default config.jsonc from the loop above is used instead."
+        log_ok "Presets installed to $FF_DIR."
+        [ -f "$FF_DIR/config.jsonc" ] && log_info "Existing config.jsonc left untouched (re-run this script with the preset you want copied over, or hand-edit it)."
     fi
 fi
 

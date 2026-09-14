@@ -146,7 +146,35 @@ EOF
 fi
 
 # ---------------------------------------------------------------------------
-# 5. KeePassXC — password manager, the one non-dev-tool ohmydebn ingredient
+# 5. C/C++ toolchain — the compiler/debugger/LSP set a C++ dev setup wants,
+#    complementary to vscodiumDevSetup.sh's extension/config work.
+# ---------------------------------------------------------------------------
+if ask "Install the C/C++ toolchain (build-essential, gdb, clangd, cmake)?" "N"; then
+    install_pkgs "C/C++ toolchain" build-essential gdb clangd cmake
+fi
+
+# ---------------------------------------------------------------------------
+# 6. Python scientific stack — interpreter + venv + the numeric/swapping
+#    core (numpy/scipy/matplotlib/pandas) + Jupyter notebook, all from
+#    Debian's own packages (no pip global installs).
+# ---------------------------------------------------------------------------
+if ask "Install the Python scientific stack (numpy, scipy, matplotlib, pandas, Jupyter)?" "N"; then
+    install_pkgs "Python tooling + venv" python3-dev python3-pip python3-venv
+    install_pkgs "Python scientific stack" python3-numpy python3-scipy python3-matplotlib python3-pandas
+    install_pkgs "Jupyter notebook" python3-notebook jupyter-core jupyter-notebook
+    if ask "Also link a 'jupyter' launcher command (jupyter-notebook vs jupyter are inconsistent across Debian releases)?" "N"; then
+        if command_exists jupyter-notebook && ! command_exists jupyter; then
+            mkdir -p "$HOME/.local/bin"
+            ln -sf "$(command -v jupyter-notebook)" "$HOME/.local/bin/jupyter"
+            log_ok "Symlinked jupyter-notebook -> ~/.local/bin/jupyter"
+        elif command_exists jupyter; then
+            log_ok "jupyter already on PATH."
+        fi
+    fi
+fi
+
+# ---------------------------------------------------------------------------
+# 7. KeePassXC — password manager, the one non-dev-tool ohmydebn ingredient
 #    worth including on its own merits (local-only vault, no account/cloud
 #    dependency, works identically regardless of init system).
 # ---------------------------------------------------------------------------

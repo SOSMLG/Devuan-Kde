@@ -1,0 +1,38 @@
+#!/bin/sh
+# =======================================================
+# auto/config — live-build configuration for the Devuan KDE ISO
+# -------------------------------------------------------
+# Sourced by `lb config` (live-build auto mechanism) so the config shown
+# here is the single source of truth: Devuan Excalibur amd64, main/contrib/
+# non-free, standard live hooks, ISO-9660 image.
+#
+# Devuan ships its own fork of live-build; `lb --help` on a build host
+# may expose slightly different knobs, but these are stable across forks.
+# =======================================================
+set -e
+
+LB_DISTRIBUTION="${LB_DISTRIBUTION:-excalibur}"
+LB_ARCHITECTURES="${LB_ARCHITECTURES:-amd64}"
+LB_ARCHIVE_AREAS="${LB_ARCHIVE_AREAS:-main contrib non-free}"
+# Pre-set env (build.sh exports LB_MIRROR_* from DEVUAN_MIRROR) beats this
+# default; DEVUAN_MIRROR beats the hardcoded upstream.
+LB_MIRROR_BOOTSTRAP="${LB_MIRROR_BOOTSTRAP:-${DEVUAN_MIRROR:-http://deb.devuan.org/merged}}"
+LB_MIRROR_CHROOT="${LB_MIRROR_CHROOT:-${DEVUAN_MIRROR:-http://deb.devuan.org/merged}}"
+LB_MIRROR_BINARY="${LB_MIRROR_BINARY:-${DEVUAN_MIRROR:-http://deb.devuan.org/merged}}"
+
+LB_BINARY_IMAGES="iso-hybrid"
+LB_IMAGE_NAME="devuan-kde"
+LB_IMAGE_TYPE="hybrid"
+
+LB_BOOTLOADERS="grub-pc"
+
+# The live system is a full working desktop, not a diskless rescue image.
+LB_LINUX_PACKAGES="linux-image-amd64"
+LB_INITRAMFS="live-boot"
+
+LB_COMPONENTS="main contrib non-free"
+
+export LB_DISTRIBUTION LB_ARCHITECTURES LB_ARCHIVE_AREAS
+export LB_MIRROR_BOOTSTRAP LB_MIRROR_CHROOT LB_MIRROR_BINARY
+export LB_BINARY_IMAGES LB_IMAGE_NAME LB_IMAGE_TYPE
+export LB_BOOTLOADERS LB_LINUX_PACKAGES LB_INITRAMFS LB_COMPONENTS

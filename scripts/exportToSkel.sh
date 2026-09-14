@@ -46,12 +46,14 @@ SKEL="${SKEL_DIR:-/etc/skel}"
 
 CANDIDATES=(
     "$SOURCE_HOME/.local/share/fonts"
+    "$SOURCE_HOME/.local/share/icons"
     "$SOURCE_HOME/.local/share/konsole"
     "$SOURCE_HOME/.local/share/color-schemes"
+    "$SOURCE_HOME/.local/share/plasma"
     "$SOURCE_HOME/.local/share/applications"
     "$SOURCE_HOME/.config/fastfetch"
-    "$SOURCE_HOME/.config/butterbash"
-    "$SOURCE_HOME/.butterbash"
+    "$SOURCE_HOME/.config/fontconfig"
+    "$SOURCE_HOME/.config/bash"
 )
 
 found=0

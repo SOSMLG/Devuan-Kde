@@ -9,9 +9,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/common.sh
 source "$SCRIPT_DIR/lib/common.sh"
 
-# Get actual user even when this was invoked with sudo somewhere upstream
-ACTUAL_USER="${SUDO_USER:-$USER}"
-
 if [ -z "$ACTUAL_USER" ] || [ "$ACTUAL_USER" = "root" ]; then
     echo -e "${RED}Could not determine a non-root user to modify. Aborting.${NC}"
     exit 1

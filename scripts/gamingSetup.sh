@@ -15,55 +15,12 @@
 # =======================================================
 set -uo pipefail
 
-RED="\033[0;31m"; GREEN="\033[0;32m"; YELLOW="\033[1;33m"; CYAN="\033[0;36m"; NC="\033[0m"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/common.sh"
 
-log_info() { echo -e "${CYAN}[*]${NC} $1"; }
-log_ok()   { echo -e "${GREEN}[OK]${NC} $1"; }
-log_warn() { echo -e "${YELLOW}[!]${NC} $1"; }
-log_err()  { echo -e "${RED}[ERROR]${NC} $1"; }
+require_not_root
 
-is_installed() {
-    dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -q "install ok installed"
-}
-
-ask() {
-    local prompt="$1" default="${2:-Y}" reply
-    local hint="(Y/n)"
-    [ "$default" = "N" ] && hint="(y/N)"
-    read -rp "$(echo -e "${YELLOW}${prompt} ${hint}: ${NC}")" reply
-    reply=${reply:-$default}
-    [[ "$reply" =~ ^[Yy]$ ]]
-}
-
-install_pkgs() {
-    local label="$1"; shift
-    local to_install=()
-    local pkg
-    for pkg in "$@"; do
-        is_installed "$pkg" || to_install+=("$pkg")
-    done
-    if [ "${#to_install[@]}" -eq 0 ]; then
-        log_ok "$label already installed."
-        return 0
-    fi
-    log_info "$label: installing ${to_install[*]}"
-    if sudo apt-get install -y "${to_install[@]}"; then
-        log_ok "$label installed."
-        return 0
-    else
-        log_warn "$label: some packages failed to install (continuing)."
-        return 1
-    fi
-}
-
-if [[ $EUID -eq 0 ]]; then
-    log_err "Do not run this as root."
-    exit 1
-fi
-
-echo -e "${CYAN}=========================================================${NC}"
-echo -e "${CYAN} Gaming & Windows-app compatibility${NC}"
-echo -e "${CYAN}=========================================================${NC}"
+log_head "Gaming & Windows-app compatibility"
 
 I386_ENABLED=0
 ensure_i386() {

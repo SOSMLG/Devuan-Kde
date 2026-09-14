@@ -11,19 +11,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lib/common.sh
 source "$SCRIPT_DIR/lib/common.sh"
 
-if [[ $EUID -eq 0 ]]; then
-    log_err "Do not run this as root."
-    exit 1
-fi
+require_not_root
 
 if ! command -v sudo &>/dev/null; then
     log_err "sudo not found."
     exit 1
 fi
 
-echo -e "${CYAN}=========================================================${NC}"
-echo -e "${CYAN} Font Installer${NC}"
-echo -e "${CYAN}=========================================================${NC}"
+log_head "Font Installer"
 
 WORK_DIR=$(mktemp -d)
 trap 'rm -rf "$WORK_DIR"' EXIT
@@ -54,7 +49,10 @@ fi
 NERD_FONT_DIR="${HOME}/.local/share/fonts/NerdFonts"
 mkdir -p "$NERD_FONT_DIR"
 
-if fc-list | grep -qi "JetBrainsMono Nerd Font"; then
+# grep -q exits as soon as it finds a match, which can SIGPIPE fc-list
+# and trip `set -o pipefail` even when the font IS present — run the
+# probe in a subshell with pipefail off so the check is reliable.
+if ( set +o pipefail; fc-list 2>/dev/null | grep -qi "JetBrainsMono Nerd Font" ); then
     log_warn "JetBrainsMono Nerd Font already installed — skipping download"
 else
     log_info "Fetching latest release URL from GitHub..."
@@ -108,6 +106,13 @@ fi
 FONTCONF_DIR="${HOME}/.config/fontconfig"
 FONTCONF="${FONTCONF_DIR}/fonts.conf"
 mkdir -p "$FONTCONF_DIR"
+
+# Never clobber a hand-tuned fonts.conf — back it up first if one exists.
+if [ -f "$FONTCONF" ]; then
+    FONTCONF_BAK="${FONTCONF}.bak.$(date +%Y%m%d%H%M%S)"
+    cp -a "$FONTCONF" "$FONTCONF_BAK"
+    log_info "Existing fonts.conf backed up to $FONTCONF_BAK"
+fi
 
 log_info "Writing ${FONTCONF}..."
 cat > "$FONTCONF" << 'EOF'

@@ -16,7 +16,7 @@
 [ -n "${_DEVUAN_KDE_COMMON_SH_LOADED:-}" ] && return 0
 _DEVUAN_KDE_COMMON_SH_LOADED=1
 
-RED="\033[0;31m"; GREEN="\033[0;32m"; YELLOW="\033[1;33m"; CYAN="\033[0;36m"; NC="\033[0m"
+RED="\033[0;31m"; GREEN="\033[0;32m"; YELLOW="\033[1;33m"; BLUE="\033[1;34m"; CYAN="\033[0;36m"; NC="\033[0m"
 
 log_info() { echo -e "${CYAN}[*]${NC} $1"; }
 log_ok()   { echo -e "${GREEN}[OK]${NC} $1"; }
@@ -36,7 +36,8 @@ is_installed() {
 }
 
 require_not_root() {
-    if [ "$(id -u)" -eq 0 ]; then
+    [ "${DEVMKDE_ISO_BUILD:-0}" = "1" ] && return 0
+    if [ "$(id -u)" -eq 0 ] && [ -z "${SUDO_USER:-}" ]; then
         log_err "Do not run this as root — run it as your normal user; it will call sudo itself when needed."
         exit 1
     fi
@@ -122,21 +123,80 @@ check_repo_package() {
     return 1
 }
 
+# init_system — print which init system this box actually runs: "systemd",
+# "openrc" (Devuan), "sysvinit", or "unknown". Never guesses; Devuan ships all
+# three and the auto-detection below matches what each one leaves in /run.
+init_system() {
+    if command_exists systemctl && [ -d /run/systemd/system ]; then
+        echo "systemd"
+    elif command_exists rc-service && [ -d /run/openrc/softlevel ]; then
+        echo "openrc"
+    elif command_exists service; then
+        echo "sysvinit"
+    else
+        echo "unknown"
+    fi
+}
+
 # start_service — enable+start a service under whatever init this box
 # actually runs: systemd, OpenRC (Devuan), or sysvinit. Never assumes
 # systemd exists; Devuan deliberately ships all three.
 start_service() {
     local svc="$1"
-    if command_exists systemctl && [ -d /run/systemd/system ]; then
-        sudo systemctl enable --now "$svc" >/dev/null 2>&1 || true
-    elif command_exists rc-service && [ -d /run/openrc/softlevel ]; then
-        sudo rc-update add "$svc" default >/dev/null 2>&1 || true
-        sudo rc-service "$svc" start >/dev/null 2>&1 || true
+    case "$(init_system)" in
+        systemd)
+            sudo systemctl enable --now "$svc" >/dev/null 2>&1 || true
+            ;;
+        openrc)
+            sudo rc-update add "$svc" default >/dev/null 2>&1 || true
+            sudo rc-service "$svc" start >/dev/null 2>&1 || true
+            ;;
+        *)
+            if command_exists update-rc.d; then
+                sudo update-rc.d "$svc" defaults >/dev/null 2>&1 || true
+            fi
+            sudo service "$svc" start >/dev/null 2>&1 || true
+            ;;
+    esac
+}
+
+# service_restart — restart a running service without touching enable state.
+service_restart() {
+    local svc="$1"
+    case "$(init_system)" in
+        systemd)
+            sudo systemctl restart "$svc" >/dev/null 2>&1 || true
+            ;;
+        openrc)
+            sudo rc-service "$svc" restart >/dev/null 2>&1 || true
+            ;;
+        *)
+            sudo service "$svc" restart >/dev/null 2>&1 || true
+            ;;
+    esac
+}
+
+# purge_if_installed — y/N-guarded removal that only purges what's actually
+# installed (never guesses, re-runs are safe). Usage:
+#   purge_if_installed "KDE games" kmahjongg kpat kpat kmines ksudoku
+purge_if_installed() {
+    local label="$1"; shift
+    local to_purge=()
+    local pkg
+    for pkg in "$@"; do
+        is_installed "$pkg" && to_purge+=("$pkg")
+    done
+    if [ "${#to_purge[@]}" -eq 0 ]; then
+        log_ok "$label: nothing to purge."
+        return 0
+    fi
+    log_info "$label: purging ${to_purge[*]}"
+    if sudo apt-get purge -y "${to_purge[@]}"; then
+        log_ok "$label purged."
+        return 0
     else
-        if command_exists update-rc.d; then
-            sudo update-rc.d "$svc" defaults >/dev/null 2>&1 || true
-        fi
-        sudo service "$svc" start >/dev/null 2>&1 || true
+        log_warn "$label: some packages failed to purge (continuing)."
+        return 1
     fi
 }
 

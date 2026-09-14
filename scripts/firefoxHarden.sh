@@ -5,19 +5,13 @@
 
 set -uo pipefail
 
-# Set colors for output
-GREEN='\033[0;32m'
-CYAN='\033[0;36m'
-RED='\033[0;31m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/common.sh"
 
 # Pinned Betterfox tag — bump here when reviewing upstream changes.
 # Tags published at https://github.com/yokoffing/Betterfox/tags
 BETTERFOX_TAG=150.0
 BETTERFOX_URL="https://raw.githubusercontent.com/yokoffing/Betterfox/${BETTERFOX_TAG}/user.js"
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Firefox profile base
 MOZ_DIR="$HOME/.mozilla/firefox"
@@ -34,15 +28,10 @@ elif [ -f /etc/debian_version ]; then
     echo -e "${GREEN}Debian-based system detected.${NC}"
 else
     echo -e "${RED}This script is optimized for Debian/Devuan. Your system may not be compatible.${NC}"
-    read -r -p "Continue anyway? (y/n): " continue_anyway
-    if [[ "$continue_anyway" != "y" && "$continue_anyway" != "Y" ]]; then
+    if ! ask "Continue anyway?" "N"; then
         exit 1
     fi
 fi
-
-is_installed() {
-    dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -q "install ok installed"
-}
 
 # Install firefox-esr if it isn't present yet — this project targets ESR.
 ensure_firefox_esr() {
@@ -370,11 +359,7 @@ show_menu() {
 }
 
 # Preflight checks
-if [[ $EUID -eq 0 ]]; then
-    echo -e "${RED}Do not run this script as root — it needs to write to your own \$HOME.${NC}"
-    echo -e "${YELLOW}Run it as your normal user; it will call sudo itself when needed.${NC}"
-    exit 1
-fi
+require_not_root
 
 if [ ! -f "$SCRIPT_DIR/policies.json" ]; then
     echo -e "${RED}Error: policies.json not found in $SCRIPT_DIR${NC}"

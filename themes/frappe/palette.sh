@@ -1,0 +1,36 @@
+PALETTE_ID="frappe"
+PALETTE_NAME="Catppuccin Frappe"
+PALETTE_SHORT="CatppuccinFrappe"
+PALETTE_DESC="Catppuccin Frappe — a lighter, blue-washed take on Catppuccin."
+
+C_BG=303446
+C_MANTLE=292c3c
+C_CRUST=232634
+C_SURFACE0=414559
+C_SURFACE1=51576d
+C_OVERLAY0=737994
+C_OVERLAY1=838ba7
+C_TEXT=c6d0f5
+C_SUBTEXT0=a5adce
+C_SUBTEXT1=b5bfe2
+
+C_ACCENT=8caaee
+C_ACCENT_FG=303446
+C_ACCENT_DIM=a6c0f2
+
+C_0=51576d
+C_1=e78284
+C_2=a6d189
+C_3=e5c890
+C_4=8caaee
+C_5=f4b8e4
+C_6=81c8be
+C_7=b5bfe2
+C_8=626880
+C_9=e78284
+C_10=a6d189
+C_11=e5c890
+C_12=8caaee
+C_13=f4b8e4
+C_14=81c8be
+C_15=a5adce
