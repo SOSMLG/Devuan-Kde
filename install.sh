@@ -9,11 +9,14 @@
 #   ./install.sh             everything, unattended, then verify
 #   ./install.sh --core      core setup only (skips sysmgmt + optional)
 #   ./install.sh --no-verify skip the post-run audit
-#   ./install.sh --only a,b  just those scripts (unattended)
+#   ./install.sh --only a,b  just those steps (unattended)
 #   ./install.sh --list      show what's included, then exit
 #
-# Anything else is passed through to run.sh. You run this as
-# your NORMAL user; the scripts escalate themselves (sudo) as needed.
+# Anything else is passed through to run.sh, so the full runner's flags work
+# here too — notably --list-utilities, --phase and --no-update. Try --help
+# here for the common subset, or ./run.sh --help for everything. You run this as
+# your NORMAL user; the scripts escalate themselves (priv() — sudo first,
+# doas fallback) as needed.
 # ==========================================
 
 set -uo pipefail
@@ -36,8 +39,16 @@ install.sh — one command, everything, unattended (Devuan/Debian + KDE Plasma t
   ./install.sh             everything, unattended, then verify
   ./install.sh --core      core setup only (skips sysmgmt + optional)
   ./install.sh --no-verify skip the post-run audit
-  ./install.sh --only a,b  just those scripts (unattended)
-  ./install.sh --list      show what's included, then exit
+  ./install.sh --only a,b  just those steps (unattended)
+  ./install.sh --list            show what's included, then exit
+  ./install.sh --list-utilities  show the standalone utilities, then exit
+  ./install.sh --phase optional  unattended, one phase only
+  ./install.sh --no-update       unattended, skip every apt-get update
+
+  Anything not listed above is passed straight to run.sh; see ./run.sh --help.
+
+  Escalation is sudo-first (doas fallback); set DEVMKDE_PRIV=doas to force doas.
+  Other env vars: DEVMKDE_SKIP_APT_UPDATE=1, DEVMKDE_ISO_BUILD=1.
 EOF
             exit 0
             ;;

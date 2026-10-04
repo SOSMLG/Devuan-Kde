@@ -1,0 +1,63 @@
+// Devuan KDE — "fancy" fastfetch config.
+//
+// Installed to ~/.config/fastfetch/config.jsonc by
+// scripts/23-fastfetchConfig.sh; the compact variant ships next to it as
+// devuan-minimal.jsonc. Both are plain text — this repo bundles no images.
+//
+// The Devuan logo is fastfetch's OWN built-in ASCII art (logo.type "builtin",
+// source "devuan"), not a vendored PNG: nothing binary ships in this repo, and
+// the art then always matches the fastfetch version actually installed.
+// `fastfetch --list-logos` is the authority on which ids exist; "devuan" is the
+// full logo and "devuan_small" the compact one.
+//
+// Colors follow the accent the rest of the toolkit uses (kdeglobals AccentColor,
+// see themes/*/palette.sh), so `fastfetch` sits in the same color story as the
+// Konsole scheme the theme engine installs.
+{
+    "$schema": "https://raw.githubusercontent.com/fastfetch-cli/fastfetch/dev/doc/schema.json",
+
+    "logo": {
+        "type": "builtin",
+        "source": "devuan",
+        // Padding is an OBJECT of per-edge character counts, not a "v h" string.
+        // Without it the art touches the top edge of the terminal.
+        "padding": {
+            "top": 1,
+            "left": 2
+        }
+    },
+
+    // Only modules that are non-empty on a real Plasma desktop are listed.
+    //
+    // DO NOT add `resolution` or `terminalFont` back. fastfetch 2.40.4 DROPS
+    // every module after the first one that comes back empty — no warning, no
+    // error, the list just stops. Verified here: ["shell","resolution","cpu"]
+    // prints Shell and nothing else. Both of those modules are empty whenever
+    // there is no display to read (headless, VT, a VM before the panel is up),
+    // so including them truncates a working config on exactly the machines that
+    // can least afford it. Same reason nothing here uses the object form
+    // ({"key": ...}): in 2.40.4 that loses even the modules before the gap.
+    "modules": [
+        // ── system ──────────────────────────────────────────────────────
+        "os",
+        "kernel",
+        "host",
+        "uptime",
+        "packages",
+        "shell",
+
+        // ── desktop ─────────────────────────────────────────────────────
+        "de",
+        "wm",
+        "wmTheme",
+        "theme",
+        "icons",
+        "terminal",
+
+        // ── hardware ────────────────────────────────────────────────────
+        "cpu",
+        "gpu",
+        "memory",
+        "disk"
+    ]
+}

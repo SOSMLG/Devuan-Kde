@@ -1,0 +1,31 @@
+# known-miss.list — package names that fail apt-checks.sh because they are
+# NOT archive package names on Devuan Excalibur / Debian 13, and every one of
+# them is deliberate. Not typos. Format: one package name per line; lines
+# starting with # are comments.
+#
+# ── Installed outside apt (verifySetup.sh asserts them) ──────────────────────
+# These three are installed by *other* means, so an apt-cache lookup can never
+# satisfy them. verifySetup.sh marks them optional for exactly this reason.
+heroic              # 44-gamingSetup.sh: third-party .deb from Heroic's GitHub release
+vesktop             # 45-vesktopTelegram.sh: third-party .deb from Vesktop's GitHub release
+opencode            # 29-aiOpencode.sh: `npm install -g opencode-ai`, not an apt package
+#
+# ── Purge targets that don't exist on this release (12-kdeDebloat.sh) ───────
+# purge_if_installed() filters by what's actually installed before touching
+# apt, so listing a package that no longer ships in Debian 13 is a silent
+# no-op rather than a failure. These are the ones Debian 13 has dropped,
+# renamed, or moved behind a component:
+kjots               # KDE notes/journal app, dropped from Debian 13
+knotes              # ditto
+ktnef               # TNEF/Outlook attachments — lives in non-free, added at install time
+kmail-account-wizard  # renamed; the wizard is now part of kmail itself
+warpinator          # not in Excalibur's default sources
+hexchat-python      # dropped upstream with the HexChat 1.12 packaging
+#
+# ── KF5 leftovers we deliberately purge on a KF6 box ───────────────────────
+# 12-kdeDebloat.sh strips KF5 Akonadi libraries for people upgrading in place
+# from Plasma 5. They will never be installed on a fresh KF6 system, so their
+# absence from the archive is expected and harmless.
+libakonadi-calendar5
+libakonadi-contact5
+libakonadi-notes5

@@ -1,0 +1,28 @@
+// Devuan KDE — "minimal" fastfetch config.
+//
+// Installed to ~/.config/fastfetch/devuan-minimal.jsonc by
+// scripts/23-fastfetchConfig.sh (the fancy one becomes config.jsonc). Use it
+// with: fastfetch --config ~/.config/fastfetch/devuan-minimal.jsonc
+//
+// Same built-in Devuan ASCII logo as the fancy config, at the compact size
+// ("devuan_small"), and only the five rows worth having on a small terminal.
+{
+    "$schema": "https://raw.githubusercontent.com/fastfetch-cli/fastfetch/dev/doc/schema.json",
+
+    "logo": {
+        "type": "builtin",
+        "source": "devuan_small",
+        "padding": {
+            "top": 1,
+            "left": 1
+        }
+    },
+
+    "modules": [
+        "os",
+        "kernel",
+        "uptime",
+        "shell",
+        "terminal"
+    ]
+}

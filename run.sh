@@ -1,9 +1,21 @@
 #!/usr/bin/env bash
 # ==========================================
 # 🧩  Devuan/Debian KDE Setup — Ordered Runner
-# Runs setup scripts in the order defined below,
-# asks Y/N per script with a default value.
-# Same pattern as DebianSway's run.sh.
+# -------------------------------------------------------
+# Runs the toolkit's step scripts in numeric order, asking Y/N per
+# script with the default declared by the script itself.
+#
+# Step discovery is automatic: every scripts/[0-9]*.sh file is a step,
+# and it carries its own metadata in three header lines:
+#
+#   # DEVMKDE_DESC: one-line description shown by --list and at run time
+#   # DEVMKDE_DEFAULT: Y|N         — what --yes answers
+#   # DEVMKDE_PHASE: core|sysmgmt|optional|standalone
+#
+# The numeric prefix is the ordering. It also names the phase band:
+# 1x = core, 3x = sysmgmt, 4x = optional, 5x = standalone (not run here).
+# `standalone` steps are deliberately excluded from a normal run — they are
+# maintenance utilities you invoke by hand.
 # ==========================================
 
 set -uo pipefail
@@ -25,29 +37,53 @@ RESET="\033[0m"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPTS_DIR="$SCRIPT_DIR/scripts"
 
+# run.sh never sources scripts/lib/common.sh so it stays usable even when a
+# script's lib is broken mid-refactor; it keeps a local priv() with the same
+# contract as the shared helper: sudo first, doas fallback, DEVMKDE_PRIV wins.
+priv() {
+    if [ -n "${DEVMKDE_PRIV:-}" ]; then
+        "$DEVMKDE_PRIV" "$@"
+    elif command -v sudo >/dev/null 2>&1; then
+        sudo "$@"
+    elif command -v doas >/dev/null 2>&1; then
+        doas "$@"
+    else
+        echo -e "${RED}No privilege-escalation tool found (tried DEVMKDE_PRIV, sudo, doas).${RESET}" >&2
+        return 127
+    fi
+}
+
 usage() {
     cat <<EOF
 Usage: $0 [options]
 
-Runs the toolkit's setup scripts in the order defined below, asking Y/N
-per script. Options:
+Runs the toolkit's step scripts in numeric order, asking Y/N per script.
+Options:
 
-  --list                Print each script (order, section, description, default) and exit.
-  --only a.sh,b.sh      Run only the listed scripts, in their defined order.
-                        Accepts filenames with or without the '.sh' suffix.
-  --phase sec1,sec2     Run only whole sections (core, sysmgmt, optional).
-  --full                Run every script in order (the default). Explicit so a
+  --list                Print each step (order, script, phase, description,
+                        default) and exit.
+  --only a,b            Run only the listed steps, in their defined order.
+                        Accepts the filename with or without '.sh', and with
+                        or without the numeric prefix (both 'kdeDebloat' and
+                        '12-kdeDebloat' resolve to 12-kdeDebloat.sh).
+  --phase sec1,sec2     Run only whole phases (core, sysmgmt, optional).
+  --full                Run every step in order (the default). Explicit so a
                         wrapper like install.sh can be self-documenting.
   --yes, -y             Answer every prompt with its default (unattended).
-  --no-update           Skip the runner's single 'apt-get update' (scripts also skip
-                        their own refreshes). Set automatically if apt fails.
+  --no-update           Skip the runner's single 'apt-get update' (scripts also
+                        skip their own refreshes). Set automatically if apt fails.
   --verify              After the run, run scripts/verifySetup.sh and report results.
   -h, --help            Show this help.
+
+Phases: core (1x, runs by default) | sysmgmt (3x) | optional (4x)
+Standalone utilities (5x) are never run by this runner — invoke them directly,
+e.g. 'bash scripts/50-configBackup.sh backup'. See --list-utilities.
 EOF
 }
 
 # --- Flags -----------------------------------------------------------------
 DO_LIST=0
+DO_LIST_UTILS=0
 DO_VERIFY=0
 ASSUME_YES=0
 SKIP_APT_UPDATE=0
@@ -57,14 +93,15 @@ PHASE_NAMES=()
 while [ $# -gt 0 ]; do
     case "$1" in
         --list) DO_LIST=1 ;;
+        --list-utilities) DO_LIST_UTILS=1 ;;
         --only)
-            [ $# -ge 2 ] || { echo -e "${RED}--only needs a comma-separated list of scripts.${RESET}"; exit 1; }
+            [ $# -ge 2 ] || { echo -e "${RED}--only needs a comma-separated list of steps.${RESET}"; exit 1; }
             shift
             IFS=',' read -ra _entries <<< "$1"
             ONLY_NAMES+=("${_entries[@]}")
             ;;
         --phase)
-            [ $# -ge 2 ] || { echo -e "${RED}--phase needs a comma-separated list of sections (core, sysmgmt, optional).${RESET}"; exit 1; }
+            [ $# -ge 2 ] || { echo -e "${RED}--phase needs a comma-separated list of phases (core, sysmgmt, optional).${RESET}"; exit 1; }
             shift
             IFS=',' read -ra _entries <<< "$1"
             PHASE_NAMES+=("${_entries[@]}")
@@ -87,11 +124,11 @@ done
 
 # --- Refuse to run as root directly ---
 # Per-user state (Firefox profile, ~/.bashrc, KDE configs, ~/.local/bin)
-# must land in the real user's $HOME, not /root. Scripts call sudo
+# must land in the real user's $HOME, not /root. Scripts escalate
 # themselves for the bits that need it.
 if [ "$(id -u)" -eq 0 ] && [ -z "${SUDO_USER:-}" ]; then
     echo -e "${RED}Please run this as your normal user, not as root / sudo bash run.sh.${RESET}"
-    echo -e "${YELLOW}Each script will call sudo itself for the parts that need it.${RESET}"
+    echo -e "${YELLOW}Each script will escalate itself for the parts that need it.${RESET}"
     exit 1
 fi
 
@@ -108,44 +145,34 @@ else
     fi
 fi
 
-# --- Ordered list: "script|description|default|section" ---
-# Section is 'core', 'sysmgmt', or 'optional' — used by --phase. Default
-# is the Y/N when this runner asks whether to run the script at all.
-SCRIPTS=(
-    "addUserToGroups.sh|Add your user to input/video/render groups (needed for touchpad + GPU accel fixes)|Y|core"
-    "systemUpdate.sh|Refresh package lists + full-upgrade before anything else (run first on a fresh install)|Y|core"
-    "kdeDebloat.sh|Debloat KDE Plasma (games/education/PIM/extras/Kate/Konqueror/Dragon Player) toward a minimal-but-functional install|Y|core"
-    "usefulApps.sh|Install VLC, TLP (+ ThinkPad battery thresholds), and a few small KDE-completing utilities|Y|core"
-    "catppuccinPlasma.sh|Catppuccin (Mocha, Red accent) Global Theme, icons, Konsole profile — the toolkit's theming step|Y|core"
-    "bootThemeSetup.sh|Carry the Catppuccin theme to Plymouth (boot splash), GRUB, and the SDDM login screen|Y|core"
-    "touchpadTrackpointFix.sh|Apply touchpad/trackpoint polling + libinput fixes|Y|core"
-    "hardwareSupport.sh|Install WiFi/Bluetooth firmware, CPU microcode, and fwupd firmware updates|Y|core"
-    "bluetoothSetup.sh|Set up the Bluetooth stack, Bluedevil, and audio bridging for headsets/earbuds|Y|core"
-    "multimediaCodecs.sh|Install audio/video codecs + DVD playback support|Y|core"
-    "firefoxHarden.sh|Install & harden Firefox ESR with Betterfox + privacy policies|Y|core"
-    "installFonts.sh|Install Noto, Font Awesome, and JetBrainsMono Nerd Font|Y|core"
-    "terminalButterbash.sh|Install ButterBash for a more functional terminal|Y|core"
-    "fastfetchConfig.sh|Install fastfetch + curated config presets|Y|core"
-    "desktopEssentials.sh|Set up Flatpak/Discover, PackageKit update notifications, printing, Partition Manager, and the firewall panel|Y|core"
-    "timeshiftSetup.sh|Install Timeshift for system snapshots/restore|Y|core"
-    "dolphinServiceMenus.sh|Right-click menu additions for Dolphin (compress PDF/image, open in VS Code/OpenCode)|Y|core"
-    "fancyPlasma.sh|Theming/productivity pass: Inter font, borderless maximize, blur, Coverflow, Night Color, effects|Y|core"
-    "kdeHotkeys.sh|Add a few custom Plasma shortcuts (Super+Return terminal, Meta+f dolphin, editor, system monitor)|Y|core"
-    "aiOpencode.sh|Install OpenCode AI coding agent + hotkey + system skill file (from ohmydebn)|Y|core"
-    "networkTimeSync.sh|Enable NTP time sync via chrony (parks openntpd, harmless if already synced)|N|sysmgmt"
-    "ssdTrim.sh|Weekly fstrim via cron (init-agnostic, works on OpenRC/sysvinit)|N|sysmgmt"
-    "updateNotifier.sh|Lightweight update notifier: cron + notify-send, no background daemon|N|sysmgmt"
-    "installPhotogimp.sh|(optional) Install GIMP + PhotoGIMP's Photoshop-like layout/theme|N|optional"
-    "installVscodium.sh|(optional) Install VSCodium editor|N|optional"
-    "vscodiumDevSetup.sh|(optional) Configure VSCodium for C++/Python development|N|optional"
-    "devToolsExtras.sh|(optional) Install curated dev extras: btop, eza, bat, zoxide check, Neovim+lazy.nvim, KeePassXC|N|optional"
-    "gamingSetup.sh|(optional) Install Heroic Games Launcher / Steam / Wine|N|optional"
-    "vesktopTelegram.sh|(optional) Install Vesktop (Discord client) / Telegram|N|optional"
-    "applyThemes.sh|(optional) Swap the active palette anytime (Konsole + Plasma color scheme + accent)|N|optional"
-    "plasmaPanel.sh|(optional) Rebuild the panel: single clean floating layout with pinned apps|N|optional"
-)
+# --- Step metadata, read from each script's own header ----------------------
+# step_meta <file> <FIELD> -> value (empty string if the header is missing)
+step_meta() {
+    grep -m1 "^# DEVMKDE_$2:" "$1" 2>/dev/null | sed "s/^# DEVMKDE_$2:[[:space:]]*//"
+}
 
-# --- Section (--phase) names must be valid ----------------------------------
+# Every numbered script is a step. Populate STEP_FILES in numeric order.
+STEP_FILES=()
+STEP_DESC=()
+STEP_DEFAULT=()
+STEP_PHASE=()
+
+while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    STEP_FILES+=("$(basename "$f")")
+    STEP_DESC+=("$(step_meta "$f" DESC)")
+    STEP_DEFAULT+=("$(step_meta "$f" DEFAULT)")
+    STEP_PHASE+=("$(step_meta "$f" PHASE)")
+done < <(find "$SCRIPTS_DIR" -maxdepth 1 -type f -name '[0-9]*.sh' | sort)
+
+if [ "${#STEP_FILES[@]}" -eq 0 ]; then
+    echo -e "${RED}No steps found in $SCRIPTS_DIR (expected scripts/[0-9]*.sh).${RESET}"
+    exit 1
+fi
+
+# Phase (--phase) names must be valid. 'standalone' is a real phase value but
+# is never selectable here: 5x utilities are run by hand.
+RUNNABLE_PHASES=(core sysmgmt optional)
 declare -A SECTIONS_OK=([core]=1 [sysmgmt]=1 [optional]=1)
 if [ "${#PHASE_NAMES[@]}" -gt 0 ]; then
     for p in "${PHASE_NAMES[@]}"; do
@@ -156,44 +183,61 @@ if [ "${#PHASE_NAMES[@]}" -gt 0 ]; then
     done
 fi
 
-# --- --list: print the ordering and exit ----------------------------------
-if [ "$DO_LIST" -eq 1 ]; then
-    echo -e "${BLUE}Toolkit scripts, in run order:${RESET}\n"
+# is_runnable_phase <phase> -> 0 when the phase belongs in a normal run
+is_runnable_phase() {
+    case "$1" in
+        core|sysmgmt|optional) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+# --- --list / --list-utilities: print and exit -----------------------------
+if [ "$DO_LIST" -eq 1 ] || [ "$DO_LIST_UTILS" -eq 1 ]; then
+    [ "$DO_LIST_UTILS" -eq 1 ] && echo -e "${BLUE}Standalone utilities (not run by this runner):${RESET}\n" \
+                              || echo -e "${BLUE}Toolkit steps, in run order:${RESET}\n"
     i=1
-    for ENTRY in "${SCRIPTS[@]}"; do
-        SCRIPT="${ENTRY%%|*}"
-        REST="${ENTRY#*|}"
-        DESC="${REST%%|*}"
-        REST2="${REST#*|}"
-        DEFAULT="${REST2%%|*}"
-        SECTION="${REST2##*|}"
-        printf '  %2d.  %-28s [%-9s] default: %-1s  %s\n' "$i" "$SCRIPT" "$SECTION" "${DEFAULT^^}" "$DESC"
+    for idx in "${!STEP_FILES[@]}"; do
+        # --list shows runnable phases; --list-utilities shows standalone.
+        if [ "$DO_LIST_UTILS" -eq 1 ]; then
+            is_runnable_phase "${STEP_PHASE[$idx]}" && continue
+        else
+            is_runnable_phase "${STEP_PHASE[$idx]}" || continue
+        fi
+        printf '  %2d.  %-30s [%-9s] default: %-1s  %s\n' \
+            "$i" "${STEP_FILES[$idx]}" "${STEP_PHASE[$idx]}" "${STEP_DEFAULT[$idx]:-N}" "${STEP_DESC[$idx]}"
         ((i++))
     done
     echo
-    echo -e "Run everything:   ${CYAN}./run.sh --full${RESET}"
-    echo -e "Pick a subset:    ${CYAN}./run.sh --only addUserToGroups.sh,usefulApps.sh${RESET}"
-    echo -e "Pick a section:   ${CYAN}./run.sh --phase core   (sections: core, sysmgmt, optional)${RESET}"
-    echo -e "Fully unattended: ${CYAN}./run.sh --yes --full${RESET}"
+    if [ "$DO_LIST_UTILS" -eq 1 ]; then
+        echo -e "Run one by hand: ${CYAN}bash scripts/50-configBackup.sh backup${RESET}"
+    else
+        echo -e "Run everything:   ${CYAN}./run.sh --full${RESET}"
+        echo -e "Pick a subset:    ${CYAN}./run.sh --only kdeDebloat,usefulApps${RESET}"
+        echo -e "Pick a phase:     ${CYAN}./run.sh --phase core   (phases: core, sysmgmt, optional)${RESET}"
+        echo -e "Fully unattended: ${CYAN}./run.sh --yes --full${RESET}"
+        echo -e "Manual utilities: ${CYAN}./run.sh --list-utilities${RESET}"
+    fi
     exit 0
 fi
 
-# --- Section (--phase) filter ----------------------------------------------
-BASE=("${SCRIPTS[@]}")
+# --- Phase (--phase) filter -------------------------------------------------
+BASE_IDX=()
 if [ "${#PHASE_NAMES[@]}" -gt 0 ]; then
-    PHASED=()
-    for ENTRY in "${SCRIPTS[@]}"; do
-        SECTION="${ENTRY##*|}"
+    for idx in "${!STEP_FILES[@]}"; do
         for p in "${PHASE_NAMES[@]}"; do
-            [ "$SECTION" = "$p" ] && PHASED+=("$ENTRY")
+            [ "${STEP_PHASE[$idx]}" = "$p" ] && BASE_IDX+=("$idx")
         done
     done
-    BASE=("${PHASED[@]}")
+else
+    for idx in "${!STEP_FILES[@]}"; do
+        is_runnable_phase "${STEP_PHASE[$idx]}" && BASE_IDX+=("$idx")
+    done
 fi
 
 SELECTED=()
 if [ "${#ONLY_NAMES[@]}" -gt 0 ]; then
-    # Normalize requested names (tolerate the trailing .sh or not).
+    # Accept 'name', 'name.sh', '10-name' or '10-name.sh' for each request, and
+    # report anything that doesn't resolve against the phase-filtered set.
     declare -A WANTED
     for n in "${ONLY_NAMES[@]}"; do
         [ -z "$n" ] && continue
@@ -201,28 +245,43 @@ if [ "${#ONLY_NAMES[@]}" -gt 0 ]; then
         WANTED["$n"]=1
     done
     unset n
-    for ENTRY in "${BASE[@]}"; do
-        SCRIPT="${ENTRY%%|*}"
-        if [ -n "${WANTED[${SCRIPT%.sh}]+x}" ]; then
-            SELECTED+=("$ENTRY")
-            unset "WANTED[${SCRIPT%.sh}]"
+    for idx in "${BASE_IDX[@]}"; do
+        stem="${STEP_FILES[$idx]%.sh}"
+        short="${stem#*-}"
+        if [ -n "${WANTED[$stem]+x}" ]; then
+            SELECTED+=("$idx")
+            unset "WANTED[$stem]"
+        elif [ "$short" != "$stem" ] && [ -n "${WANTED[$short]+x}" ]; then
+            SELECTED+=("$idx")
+            unset "WANTED[$short]"
         fi
     done
+    unset stem short
     for leftover in "${!WANTED[@]}"; do
-        echo -e "${YELLOW}⚠ Not a toolkit script, ignoring: $leftover.sh${RESET}"
+        echo -e "${YELLOW}⚠ Not a toolkit step in the selected phase(s), ignoring: $leftover${RESET}"
     done
     unset leftover
     if [ "${#SELECTED[@]}" -eq 0 ]; then
-        echo -e "${RED}No matching scripts for --only. Use --list to see available ones.${RESET}"
+        echo -e "${RED}No matching steps for --only. Use --list to see available ones.${RESET}"
         exit 1
     fi
 else
-    SELECTED=("${BASE[@]}")
+    SELECTED=("${BASE_IDX[@]}")
 fi
 
 echo -e "${BLUE}=========================================================${RESET}"
 echo -e "${BLUE}   Devuan/Debian KDE Setup${RESET}"
 echo -e "${BLUE}=========================================================${RESET}\n"
+
+# --- Session-type notice ---------------------------------------------------
+# Plasma 6.8 drops the X11 session entirely (6.7 is the last X11 release).
+# Warn on X11 so the choice is deliberate, but run either way.
+# NOTE: two separate [ ] tests, never `[ -n "$x" && "$x" = y ]` — bash's [
+# builtin in this environment rejects that form with "missing ]".
+if [ -n "${XDG_SESSION_TYPE:-}" ] && [ "${XDG_SESSION_TYPE:-}" = "x11" ]; then
+    echo -e "${YELLOW}[!] This is an X11 session. Plasma 6.8 will be Wayland-only — see"
+    echo -e "    33-plasmaPerformance.sh for the migration checklist.${RESET}\n"
+fi
 
 # --- One apt refresh, then let the scripts skip their own ------------------
 # Scripts call apt_update(), which is a no-op when DEVMKDE_SKIP_APT_UPDATE
@@ -230,7 +289,7 @@ echo -e "${BLUE}=========================================================${RESET
 export DEVMKDE_SKIP_APT_UPDATE=1
 if [ "$SKIP_APT_UPDATE" -eq 0 ]; then
     echo -e "${CYAN}[*] Refreshing package lists once (scripts will skip their own refreshes)...${RESET}"
-    if ! sudo apt-get update; then
+    if ! priv apt-get update; then
         echo -e "${YELLOW}[!] apt-get update failed — continuing anyway. Some installs may fail if lists are stale.${RESET}"
     fi
 fi
@@ -246,12 +305,10 @@ record_run "$0 ${ONLY_NAMES[*]:-${PHASE_NAMES[*]:-full}} (assume-yes=${ASSUME_YE
 FAILED=()
 SKIPPED=()
 
-for ENTRY in "${SELECTED[@]}"; do
-    SCRIPT="${ENTRY%%|*}"
-    REST="${ENTRY#*|}"
-    DESC="${REST%%|*}"
-    REST2="${REST#*|}"
-    DEFAULT="${REST2%%|*}"
+for idx in "${SELECTED[@]}"; do
+    SCRIPT="${STEP_FILES[$idx]}"
+    DESC="${STEP_DESC[$idx]}"
+    DEFAULT="${STEP_DEFAULT[$idx]:-N}"
     SCRIPT_PATH="$SCRIPTS_DIR/$SCRIPT"
 
     echo -e "${YELLOW}▶ ${SCRIPT}${RESET}"

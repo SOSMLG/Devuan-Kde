@@ -62,3 +62,21 @@ Color=@RG_C_7@
 
 [Color7Intense]
 Color=@RG_C_15@
+
+# Cursor and selection. Without these three sections Konsole silently falls back
+# to its own defaults, which is how a scheme can match Alacritry on all 16 ANSI
+# colours and still look different: the block cursor and the selection highlight
+# are drawn from here and nowhere else. C_ACCENT is the cursor, C_SURFACE0 the
+# selection background, C_TEXT the selected text -- the same roles they have in
+# the Alacritry config these palettes are derived from.
+[Cursor]
+Color=@RG_C_ACCENT@
+ColorIntense=@RG_C_ACCENT@
+
+[SelectionBackground]
+Color=@RG_C_SURFACE0@
+ColorIntense=@RG_C_SURFACE0@
+
+[SelectionForeground]
+Color=@RG_C_TEXT@
+ColorIntense=@RG_C_TEXT@

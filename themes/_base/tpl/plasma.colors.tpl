@@ -100,6 +100,20 @@ ForegroundNormal=@RG_C_TEXT@
 ForegroundPositive=@RG_C_2@
 ForegroundVisited=@RG_C_5@
 
+[Colors:View]
+BackgroundAlternate=@RG_C_SURFACE0@
+BackgroundNormal=@RG_C_BG@
+DecorationFocus=@RG_C_ACCENT@
+DecorationHover=@RG_C_ACCENT_DIM@
+ForegroundActive=@RG_C_ACCENT@
+ForegroundInactive=@RG_C_SUBTEXT0@
+ForegroundLink=@RG_C_ACCENT_DIM@
+ForegroundNegative=@RG_C_1@
+ForegroundNeutral=@RG_C_3@
+ForegroundNormal=@RG_C_TEXT@
+ForegroundPositive=@RG_C_2@
+ForegroundVisited=@RG_C_5@
+
 [General]
 ColorScheme=@PALETTE_SHORT@
 Name=@PALETTE_NAME@

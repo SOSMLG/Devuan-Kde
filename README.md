@@ -1,636 +1,330 @@
-# devuan-kde-setup
+# Devuan KDE
 
-Post-install polish for a Devuan (or Debian) box where **KDE Plasma is
-already installed** by the distro's own installer. This does *not* install
-KDE — it debloats the default Plasma task install toward a minimal-but-
-functional desktop, then fills in the "why doesn't this just work like
-Mint" gaps: codecs, WiFi/Bluetooth firmware, a unified software center,
-printing, a firewall panel, Timeshift for system snapshots, and a
-complete Catppuccin (Mocha, Red) visual identity — Plasma theme, icons,
-Konsole profile, Plymouth boot splash, GRUB menu, and SDDM login screen —
-while staying an opt-in, à-la-carte toolkit rather than
-a heavyweight installer.
+Post-install polish for a Devuan (or Debian) box where **KDE Plasma is already
+installed** by the distro's own installer. This toolkit does not install KDE. It
+debloats the default Plasma task toward a minimal-but-functional desktop, then
+fills in the "why doesn't this just work" gaps: codecs, WiFi/Bluetooth
+firmware, a software center, printing, a firewall panel, Timeshift snapshots,
+and a complete Darkmatter visual identity — Global Theme, icons, Konsole
+profile, Plymouth splash, GRUB menu and SDDM login screen.
 
-Structure follows the same "ordered runner + flat scripts/ dir" pattern as
-the DebianSway repo this was modeled after.
+Written against **Plasma 6.3 / KDE Frameworks 6.13** on **Devuan 6 (Excalibur)**
+(Debian 13 / Trixie compatible).
 
-## Fixes + additions in this pass
-
-**Two real bugs fixed, not just new features:**
-
-- **`aiOpencode.sh` and `devToolsExtras.sh` were both completely broken.**
-  Both `source "$SCRIPT_DIR/../lib/common.sh"` — a file that never
-  actually existed in this repo, so both exited immediately on that line
-  before doing anything. `scripts/lib/common.sh` now exists.
-- **`aiOpencode.sh`'s Super+A hotkey didn't work on KDE at all.** It used
-  `gsettings`/`org.cinnamon.desktop.keybindings` — that's Cinnamon's
-  config system (GNOME/dconf-based), not KDE's. Plasma doesn't read
-  dconf for its own shortcuts, so the binding silently did nothing. A few
-  other leftover "Cinnamon"/"OpenRC" references (and a missing skill file
-  it pointed at) suggest this script was adapted from a sibling
-  Cinnamon-based toolkit and not fully re-targeted. It's now wired
-  through kglobalaccel — the real mechanism, verified against two
-  independent write-ups of what System Settings' own "Add Command..."
-  button does under the hood (a `.desktop` launcher with
-  `X-KDE-GlobalAccel-CommandShortcut=true`, referenced from
-  `~/.config/kglobalshortcutsrc`). `scripts/skills/devuan-kde-SKILL.md`
-  (also previously missing) now exists too, describing this system
-  accurately instead of as a Cinnamon box.
-- A stray duplicate `AddUserToGroups.sh` (an earlier, worse draft —
-  no shebang, no root check, no idempotency check) sat alongside the
-  real `addUserToGroups.sh` and has been removed.
-
-**New: a Catppuccin visual identity end-to-end, matching this toolkit's
-XFCE sibling project — Mocha flavour, Red accent (a black chassis, red
-TrackPoint nub, if you're on a ThinkPad):**
-
-- **`catppuccinPlasma.sh`** — the official
-  [catppuccin/kde](https://github.com/catppuccin/kde) Global Theme
-  (prebuilt/pre-rendered by their own CI, unlike Darkly there's no
-  compile step). Icons come from **Papirus-Dark** (Debian's
-  `papirus-icon-theme`), the de-facto KDE-native icon set — it ships every
-  Plasma app icon and handles KDE's symlink aliasing properly (the earlier
-  `Catppuccin-SE`/`SE-Local` download from ljmill/catppuccin-icons was a
-  GTK-leaning port whose symlinked app-icon aliases broke under Plasma,
-  leaving generic icons in the launcher/taskbar). The Konsole profile +
-  Plasma color scheme steps are rendered by the **palette
-  engine** (`scripts/lib/theme.sh` + `themes/`) from the same
-  `mocha-red` palette that drives `applyThemes.sh`, so `catppuccinPlasma.sh`
-  and a later palette swap can never drift apart. It also generates a
-  locally-made Catppuccin-toned wallpaper (ImageMagick, no download) —
-  a carry-over from the retired `mintLookPlasma.sh`. **This is the
-  toolkit's default theming step** — it sets application style, color
-  scheme, window decoration, splash, cursor, and icons.
-- **`applyThemes.sh`** — the palette engine's front door: apply or swap
-  any of the 8 shipped palettes (default: `mocha-red`) anytime. Each
-  `themes/<name>/palette.sh` is a single source of truth turned into a
-  matching Konsole scheme + profile, a Plasma `.colors` scheme, and the
-  `kdeglobals` accent — verified byte-identical to the old hand-authored
-  Konsole output.
-- **`bootThemeSetup.sh`** — carries the theme to Plymouth (boot splash)
-  and GRUB (same as the XFCE sibling, both DE-agnostic), plus the SDDM
-  login screen via [catppuccin/sddm](https://github.com/catppuccin/sddm)
-  (XFCE's equivalent used LightDM; this uses SDDM, KDE's actual display
-  manager). Same invasiveness disclaimer as the XFCE version: it's the
-  only script here touching `/etc/default/grub` and the initramfs, every
-  edit is backed up, and it checks for GRUB/SDDM before touching either.
-- **`fancyPlasma.sh`** and **`plasmaPanel.sh`** return as *optional
-  finishes* — see below.
-- **`bluetoothSetup.sh`** — bluez, Bluedevil (KDE's native applet — no
-  Blueman, that would just be two tray icons fighting over one adapter),
-  and the part that actually trips people up: Bluetooth *audio*
-  specifically, detecting PipeWire vs PulseAudio rather than installing
-  both blind, so A2DP stereo (not just pairing) works for headsets/earbuds.
-
-**Enhanced, not new:**
-
-- **`usefulApps.sh`'s TLP option** now removes `power-profiles-daemon`
-  first (the two fight over the same power knobs if both run) and offers
-  an 80%-charge-cap on hardware that actually exposes the sysfs threshold
-  — same logic as the XFCE sibling's `hardwareSupport.sh`.
-- **`desktopEssentials.sh`** gained a `packagekit` install — without it,
-  Discover has no way to see (or notify about) apt updates at all, so
-  the panel's update notification silently never fires. Also: enabling
-  the firewall is now a real option (SSH-safe deny-incoming, same guard
-  logic as the XFCE sibling) instead of a permanent "install only, turn
-  it on yourself" — still opt-in, still off by default, just no longer a
-  dead end if you do want it on.
-
-## Structure
-
-```
-devuan-kde-setup/
-├── run.sh                        # main entry point — run this (flags: --list/--only/--yes/--verify/--phase)
-├── install.sh                    # one-command wrapper: default --full + verify (sudo ./install.sh)
-├── iso/                          # build the whole toolkit as a Devuan Excalibur + KDE ISO (scaffold)
-│   ├── build.sh                  # live-build runner (sudo ./iso/build.sh)
-│   ├── config/                   # auto/config + package lists + bake/OpenRC hooks + skel setup
-│   └── README.md                 # ISO build/test/install docs
-├── themes/                       # palette engine data — one palette per dir, single source of truth
-│   ├── _base/tpl/                # Konsole/.colors/kdeglobals templates (hex + decimal expansions)
-│   └── {mocha-red,mocha-blue,frappe,nord,dracula,tokyo-night,gruvbox,solarized}/palette.sh
-├── scripts/
-│   ├── lib/common.sh             # shared helpers sourced by every script
-│   ├── lib/theme.sh               # palette engine: hex→RGB, applies Konsole+colors+kdeglobals accent
-│   ├── addUserToGroups.sh        # input/video/render groups
-│   ├── kdeDebloat.sh             # remove games/edu/PIM bloat, Kate/Konqueror/Dragon Player, disable Baloo
-│   ├── catppuccinPlasma.sh       # Catppuccin Global Theme + icons + palette engine default (mocha-red)
-│   ├── applyThemes.sh            # swap/apply any palette anytime (themes/<name>/)
-│   ├── fancyPlasma.sh            # (optional) Inter font, blur, Coverflow, night color, KWin effects
-│   ├── plasmaPanel.sh            # (optional) clean single floating panel + pinned apps, via plasmashell scripting API
-│   ├── kdeHotkeys.sh             # Meta+Return terminal, Meta+f files, Ctrl+Meta+e editor, Ctrl+Shift+Esc monitor
-│   ├── dolphinServiceMenus.sh    # KIO servicemenus: compress→PDF/image, open in VS Code / OpenCode
-│   ├── bootThemeSetup.sh         # Plymouth splash + GRUB theme + SDDM login screen (boot → login)
-│   ├── touchpadTrackpointFix.sh  # usbhid mousepoll fix + optional libinput tuning
-│   ├── hardwareSupport.sh        # WiFi/BT firmware, CPU microcode, fwupd firmware updates
-│   ├── bluetoothSetup.sh         # bluez, Bluedevil, and Bluetooth audio (PipeWire/PulseAudio) bridging
-│   ├── multimediaCodecs.sh       # ffmpeg/GStreamer codecs + DVD playback
-│   ├── firefoxHarden.sh          # installs + hardens firefox-esr (Betterfox)
-│   ├── policies.json             # firefox enterprise policy used by the above
-│   ├── installFonts.sh           # Noto, Font Awesome, JetBrainsMono Nerd Font
-│   ├── terminalButterbash.sh     # installs bundled ButterBash
-│   ├── fastfetchConfig.sh        # fastfetch + curated config presets
-│   ├── usefulApps.sh             # VLC, TLP (+ ThinkPad battery thresholds), small completeness packages
-│   ├── desktopEssentials.sh      # Flatpak/Discover, PackageKit, printing, Partition Manager, firewall panel
-│   ├── timeshiftSetup.sh         # Timeshift system snapshot/restore tool
-│   ├── networkTimeSync.sh        # NTP time sync via chrony (works under any init)
-│   ├── ssdTrim.sh                # weekly fstrim via cron (init-agnostic)
-│   ├── systemUpdate.sh           # safe full-upgrade with rolling backup of dpkg state
-│   ├── updateNotifier.sh         # cron + notify-send update checks, no daemon
-│   ├── installPhotogimp.sh       # (optional) GIMP + PhotoGIMP layout/theme, fetched live from GitHub
-│   ├── installVscodium.sh        # (optional) VSCodium via official APT repo
-│   ├── vscodiumDevSetup.sh       # (optional) VSCodium C++/Python dev environment
-│   ├── aiOpencode.sh             # OpenCode AI agent + Super+A hotkey + system skill file
-│   ├── devToolsExtras.sh         # (optional) btop, eza, bat, zoxide, Neovim+lazy.nvim, KeePassXC
-│   ├── gamingSetup.sh            # (optional) Heroic Games Launcher / Steam / Wine
-│   ├── vesktopTelegram.sh        # (optional) Vesktop (Discord client) / Telegram
-│   ├── verifySetup.sh            # end-state audit of a run (what run.sh --verify runs)
-│   ├── configBackup.sh           # backup/restore/list your toolkit's per-user config
-│   ├── systemMaintenance.sh      # apt cleanup, dead ~/.local/bin symlinks, optional upgrade
-│   ├── exportToSkel.sh           # copy baked per-user defaults into /etc/skel (ISO & multi-user)
-│   └── skills/devuan-kde-SKILL.md # system context file for AI coding agents (OpenCode/Claude Code)
-├── butterbash/                   # bundled copy of butterbash-main, used offline
-└── README.md
-```
-
-## Usage
+## Quick start
 
 ```bash
-cd devuan-kde-setup
-chmod +x run.sh scripts/*.sh
-./run.sh
+./run.sh                  # interactive, asks before each step
+./run.sh --list           # see every step, its phase, and its default
+./run.sh --only 14,27     # just the theme and desktop polish
+./run.sh --phase sysmgmt  # only the system-management phase
+./run.sh --full --yes     # unattended, every step at its default
+./install.sh              # unattended wrapper: --full --yes, then --verify
 ```
 
-Run it as your **normal user**, not as root and not with `sudo bash run.sh`.
-Every script calls `sudo` itself for the specific commands that need it —
-this matters because Firefox's profile, your `~/.bashrc`, and KDE's config
-files all need to land in *your* `$HOME`, not root's.
+Run it as your **normal user**, never as root and never via
+`sudo bash run.sh`. The scripts escalate only the individual commands that
+need it, through a helper that prefers `sudo` and falls back to `doas`.
 
-`run.sh` walks through each script in order and asks `Y/n` (or `y/N`) before
-running it, exactly like DebianSway's `run.sh`. You can also run any script
-standalone, e.g. just the touchpad fix:
+The three standalone utilities (backups, maintenance, skel export) are never
+run by the runner. Invoke them directly:
 
 ```bash
-bash scripts/touchpadTrackpointFix.sh
+./run.sh --list-utilities
+bash scripts/50-configBackup.sh backup
+bash scripts/51-systemMaintenance.sh
 ```
 
-`run.sh` options:
+## Requirements
+
+- Devuan 6 (Excalibur) or Debian 13 (Trixie) with Plasma 6 installed
+- `bash`, `coreutils`, `apt`
+- A user in the `sudo` or `doas` group
+- A running Plasma 6 session, **X11 or Wayland**
+
+> **Both X11 and Wayland are supported**, and Wayland is the expected case.
+> Where the two genuinely differ, the toolkit detects it rather than assuming:
+> `27-fancyPlasma.sh` skips the X11-only window-management tweaks under Wayland
+> and says so instead of writing keys nothing reads, and `47-plasmaPanel.sh`
+> builds its layout through the Plasma 6 D-Bus scripting API, which is
+> identical on both. `run.sh` prints the Plasma 6.8 Wayland-only migration note
+> when it finds itself on X11.
+
+## Layout
+
+```
+.
+├── run.sh                  # the runner — start here
+├── install.sh              # unattended wrapper (--full --yes --verify)
+├── Makefile                # test + release targets
+├── VERSION / RELEASE.md    # release metadata
+├── themes/
+│   ├── _base/tpl/          # templates (colors, konsole, …)
+│   └── palettes.sh         # every palette, as palette_<id>() functions
+├── assets/
+│   └── fastfetch/          # the two shipped fastfetch configs (plain text)
+├── iso/                    # ISO build helper
+└── scripts/
+    ├── [0-9][0-9]-*.sh     # numbered steps + 5x utilities
+    ├── lib/
+    │   ├── common.sh       # priv, apt, config read/write, shortcuts
+    │   └── theme.sh        # palette rendering + Global Theme generation
+    ├── skills/             # agent skill files
+    └── verifySetup.sh      # post-install verification
+```
+
+## Steps
+
+Every step declares its own metadata, which is what `--list` and the phase
+filters read. Defaults are what `--yes` answers.
+
+### Phase `core` — runs by default
+
+| # | Script | Default | What it does |
+| --- | --- | --- | --- |
+| 10 | `10-addUserToGroups.sh` | Y | Add your user to the input/video/render groups (needed for touchpad + GPU accel fixes) |
+| 11 | `11-systemUpdate.sh` | Y | Refresh package lists + full-upgrade before anything else (run first on a fresh install) |
+| 12 | `12-kdeDebloat.sh` | Y | Debloat KDE Plasma (games/education/PIM/extras) toward a minimal-but-functional install |
+| 13 | `13-usefulApps.sh` | Y | Install VLC, TLP (+ ThinkPad battery thresholds), and a few small KDE-completing utilities |
+| 14 | `14-plasmaTheme.sh` | Y | The look: Darkmatter palette + Global Theme, accent, Konsole profile, icons, wallpaper |
+| 15 | `15-bootThemeSetup.sh` | Y | Carry the theme to Plymouth (boot splash), GRUB, and the SDDM login screen |
+| 16 | `16-touchpadTrackpointFix.sh` | Y | Apply touchpad/trackpoint polling + libinput fixes |
+| 17 | `17-hardwareSupport.sh` | Y | Install WiFi/Bluetooth firmware, CPU microcode, and fwupd firmware updates |
+| 18 | `18-bluetoothSetup.sh` | Y | Set up the Bluetooth stack, Bluedevil, and audio bridging for headsets/earbuds |
+| 19 | `19-multimediaCodecs.sh` | Y | Install audio/video codecs + DVD playback support |
+| 20 | `20-firefoxHarden.sh` | Y | Install & harden Firefox ESR with Betterfox + privacy policies |
+| 21 | `21-installFonts.sh` | Y | Install Noto, Font Awesome, and JetBrainsMono Nerd Font |
+| 22 | `22-terminalButterbash.sh` | Y | Fetch ButterBash at a pinned commit (SHA-verified) into `~/.config`, appending one marked block to `.bashrc` |
+| 23 | `23-fastfetchConfig.sh` | Y | Install fastfetch + the bundled Devuan ASCII config (fancy default, plus a minimal variant) |
+| 24 | `24-desktopEssentials.sh` | Y | Set up Flatpak/Discover, PackageKit update notifications, printing, Partition Manager, firewall |
+| 25 | `25-timeshiftSetup.sh` | Y | Install Timeshift for system snapshots/restore |
+| 26 | `26-dolphinServiceMenus.sh` | Y | Right-click menu additions for Dolphin (compress PDF/image, open in VS Code/OpenCode) |
+| 27 | `27-fancyPlasma.sh` | Y | Desktop polish: Noto Sans font, borderless maximize, blur, switcher, Night Color, effects |
+| 28 | `28-kdeHotkeys.sh` | Y | Add custom Plasma global shortcuts (terminal, Dolphin, editor, system monitor) |
+| 29 | `29-aiOpencode.sh` | Y | Install the OpenCode AI coding agent + global hotkey + system skill file |
+
+### Phase `sysmgmt` — `--phase sysmgmt`
+
+| # | Script | Default | What it does |
+| --- | --- | --- | --- |
+| 30 | `30-networkTimeSync.sh` | Y | Enable NTP time sync via chrony (parks openntpd, harmless if already synced) |
+| 31 | `31-ssdTrim.sh` | Y | Weekly fstrim via cron (init-agnostic, works on OpenRC/sysvinit) |
+| 32 | `32-updateNotifier.sh` | Y | Lightweight update notifier: cron + notify-send, no background daemon |
+| 33 | `33-plasmaPerformance.sh` | Y | Plasma performance tuning: animations, compositing, desktop icons, indexing, autostart trimming |
+
+### Phase `optional` — `--phase optional`
+
+| # | Script | Default | What it does |
+| --- | --- | --- | --- |
+| 40 | `40-installPhotogimp.sh` | Y | Install GIMP + PhotoGIMP's Photoshop-like layout/theme |
+| 41 | `41-installVscodium.sh` | Y | Install the VSCodium editor |
+| 42 | `42-vscodiumDevSetup.sh` | Y | Configure VSCodium for C++/Python development |
+| 43 | `43-devToolsExtras.sh` | Y | Install curated dev extras: btop, eza, bat, zoxide, Neovim+lazy.nvim, KeePassXC |
+| 44 | `44-gamingSetup.sh` | Y | Install Heroic Games Launcher / Steam / Wine |
+| 45 | `45-vesktopTelegram.sh` | Y | Install Vesktop (Discord client) / Telegram |
+| 46 | `46-applyThemes.sh` | Y | Swap the active palette anytime (Konsole + Plasma color scheme + accent + Global Theme, 12 palettes) |
+| 47 | `47-plasmaPanel.sh` | Y | Rebuild the panel: one floating bottom bar (launcher, pinned apps, tasks, pager, tray, clock) (`--tray-panel`, `--extras`, `--dodge-windows`, `--restore`, `--dry-run`) |
+| 48 | `48-plasmaAddons.sh` | Y | Plasma 6 plugins, KRunner runners, extra image formats, apps (Debian-first), user kpackages |
+
+### `standalone` utilities — never run by the runner
+
+| # | Script | What it does |
+| --- | --- | --- |
+| 50 | `50-configBackup.sh` | Back up / list / restore the KDE + user config this toolkit touches |
+| 51 | `51-systemMaintenance.sh` | Periodic cleanup: autoremove, autoclean, dead symlinks, optional full-upgrade |
+| 52 | `52-exportToSkel.sh` | Copy curated per-user defaults to `/etc/skel` (ISO bake only — the one script that runs as root) |
+
+## Fetched at install time
+
+Nothing third-party is vendored. Three things are downloaded and verified when
+the step that needs them runs:
+
+| What | From | Pin |
+| --- | --- | --- |
+| ButterBash | `codeberg.org/justaguylinux/butterbash` | commit `ae194a92923c922e1baaede280940a5a256da99f`, tarball SHA256 `0989771e…96c9` |
+| Catppuccin KDE | GitHub release | tag `v0.4.0` (commit `6606b5179cfc…ddca2`), tarball SHA256 verified |
+| Darkmatter GTK/xfwm4 theme + Zafiro icons | upstream | version pinned in `14-plasmaTheme.sh` |
+
+`22-terminalButterbash.sh` fetches a **pinned commit**, not a branch, so two
+runs of the step cannot silently install different code, and it refuses to
+install on a hash mismatch. It also does **not** run upstream's `install.sh`:
+that script overwrites `~/.bashrc` and moves `~/.config/bash` aside. Instead the
+step copies `bash/*` into `~/.config/bash`, keeps upstream's `bashrc.example` at
+`~/.config/butterbash/bashrc` (outside the directory that rc globs, so it cannot
+source itself), and appends **one marked block** to `~/.bashrc` — re-running
+refreshes that block in place and never touches your own lines.
+
+To move ButterBash forward, override all three at once:
 
 ```bash
-./run.sh --list                       # print every script in run order + its default
-./run.sh --only kdeDebloat.sh,usefulApps.sh   # run a subset (order kept sane)
-./run.sh --yes                        # unattended: every prompt takes its default
-./run.sh --no-update                  # skip run.sh's single apt-get update
-./run.sh --verify                     # after the run, run scripts/verifySetup.sh
-./run.sh --phase core                 # run only one section: core / sysmgmt / optional
-./run.sh --full                       # an alias for --phase core --phase sysmgmt --phase optional
+BUTTERBASH_REF=<commit> BUTTERBASH_SHA256=<sha256-of-tarball> bash scripts/22-terminalButterbash.sh
 ```
 
-`install.sh` wraps `run.sh` for the "just do everything" crowd: it exports
-`DEVMKDE_ASSUME_YES=1`, runs `--full` + `--verify`, and passes any extra
-argument through to `run.sh`.
+The fastfetch configs are the opposite case: they ship **in** the repo, as plain
+text, at `assets/fastfetch/`. The Devuan logo is fastfetch's own built-in ASCII
+art (`"logo": {"type": "builtin", "source": "devuan"}`), so no image is
+committed and the art always matches the installed fastfetch version.
 
-One detail worth knowing: the runner refreshes `apt` **once** up front and
-then exports `DEVMKDE_SKIP_APT_UPDATE=1`, so the ~13 scripts that otherwise
-each run their own `apt-get update` are no-ops under the runner. Running any
-script standalone still refreshes on its own, so nothing changes there.
+## Theming
 
-## What each step does
+Every palette is a `palette_<id>()` function in `themes/palettes.sh` — one file
+rather than one directory per palette — rendered through the templates in
+`themes/_base/tpl/`. Adding a palette means adding an id to `PALETTE_IDS` and one
+function; nothing else needs touching. The default **Darkmatter** palette is a
+near-black base (`#121113`) with a red accent (`#e75353`);
+`darkmatter-orange` keeps the upstream orange (`#e78a53`) for comparison.
 
-**addUserToGroups.sh** — adds you to `input`, `video`, `render` groups.
-Needed for some touchpad/trackpoint diagnostics and GPU acceleration.
-
-**kdeDebloat.sh** — purges (only what's actually installed, never guesses):
-- KDE games (`kdegames` suite: kmahjongg, kpat, kmines, ksudoku, ...)
-- KDE education suite (kalzium, kstars, parley, marble, ...)
-- The PIM/Akonadi stack (Kontact, KMail, KOrganizer, Akregator, Akonadi
-  background services) — this is the single biggest idle-RAM group on a
-  default KDE install
-- Elisa, Kamoso, Minuet, JuK, plasma-welcome, khelpcenter (replaced by VLC
-  and your own workflow)
-- Kate, Konqueror, Dragon Player (replaced by VSCodium, Dolphin, and VLC)
-
-Then runs `apt autoremove --purge` + `apt clean`, disables Baloo file
-indexing for your user, and optionally shaves KDE's animation duration
-down for a snappier feel. Plasma itself, Dolphin, Konsole, Kate, Okular,
-Gwenview, Ark, System Settings, SDDM, etc. are never touched.
-
-Every category is its own y/N prompt, so you can keep the games or the
-PIM suite if you actually use them.
-
-**catppuccinPlasma.sh** — the toolkit's default theming step. Installs
-the official [catppuccin/kde](https://github.com/catppuccin/kde) Global
-Theme (Mocha flavour, Red accent, Classic window decoration — no compile
-step, since Catppuccin ships pre-rendered), applies **Papirus-Dark** as
-the active icon theme (Debian's `papirus-icon-theme` — the KDE-native set,
-replacing the old `Catppuccin-SE`/`SE-Local` GTK-leaning download), renders
-the Konsole scheme + profile + Plasma color scheme + accent from the
-`mocha-red` palette via the engine — the same source `applyThemes.sh`
-uses — and optionally generates a Catppuccin-toned wallpaper locally
-(ImageMagick, no download; applying it to the live desktop is a separate
-default-off prompt).
-
-**applyThemes.sh** — the palette engine's front door. Ships 8 palettes
-(`themes/mocha-red` default, plus `mocha-blue`, `frappe`, `nord`,
-`dracula`, `tokyo-night`, `gruvbox`, `solarized`), each a
-`palette.sh` of plain hex values that gets expanded through
-`themes/_base/tpl/` into Konsole scheme + profile, a Plasma `.colors`
-scheme, and the `kdeglobals` accent (writes `konsolerc` + `kdeglobals`,
-then live-reloads what it can). Usage: `applyThemes.sh` (interactive),
-`applyThemes.sh nord` (direct), `applyThemes.sh --list`. The active
-palette is tracked in
-`~/.local/state/devuan-kde-setup/current-theme` so `verifySetup.sh` can
-check the right files. Adding a palette is adding one directory — the
-engine, templates, and verify stay untouched.
-
-**fancyPlasma.sh** *(optional alternate look)* — a productivity/theming
-pass independent of Catppuccin: the Inter font, borderless maximized
-windows, KWin blur, Coverflow TabBox, automatic Night Color, and an
-opt-in Burn My Windows effect. Designed to layer on top of any palette.
-
-**plasmaPanel.sh** *(optional)* — rebuilds the panel into one clean,
-organized, floating bar with your pinned apps (Konsole, Dolphin, Firefox,
-VLC, Okular — only what's installed) plus icon-tasks, tray, and a compact
-clock. It uses the same **plasmashell scripting API** that KDE's own
-migration scripts use (`createPanel()`/`addWidget()`/`writeConfig()`), so
-it never hand-edits `plasma-org.kde.plasma.desktop-appletsrc`; the config
-is backed up first, and `--dry-run` prints the exact payload without
-touching the session.
-
-**kdeHotkeys.sh** — the hotkeys that make a second DE feel like "home":
-Meta+Return → terminal, Meta+f → files, Ctrl+Meta+e → editor,
-Ctrl+Shift+Escape → system monitor. Written as a real
-`~/.config/khotkeysrc` + `~/.config/kglobalshortcutsrc` set (the exact
-layout KHotkeys itself produces), verified against the box's own
-dotfiles, with fixed UUIDs and merge-rather-than-clobber behavior.
-
-**dolphinServiceMenus.sh** — KIO servicemenus for Dolphin:
-compress-to-PDF/compressed image, plus "Open in VS Code" and "Open in
-OpenCode" entries that launch from a terminal (`Terminal=true`), wired
-through small wrappers in `~/.local/bin`.
-
-**ssdTrim.sh** / **systemUpdate.sh** / **updateNotifier.sh** *(sysmgmt
-section, init-agnostic)* — weekly `fstrim` via cron; a careful
-`full-upgrade` with a rolling backup of dpkg state; and a cron-driven
-`notify-send` update notifier that needs no background daemon.
-
-**bootThemeSetup.sh** — the part before you reach Plasma at all: a
-Catppuccin Plymouth boot splash, a Catppuccin GRUB menu theme, and the
-Catppuccin SDDM login screen. The most invasive script in the toolkit —
-it's the only one touching `/etc/default/grub` and rebuilding the
-initramfs — so every file it edits is backed up first, and it checks
-GRUB/SDDM are actually present before touching either rather than
-assuming a particular boot setup.
-
-**touchpadTrackpointFix.sh** — applies the fix from your `touchpadfix` note:
-
-```
-/etc/modprobe.d/mousepoll.conf:
-options usbhid mousepoll=2
+```bash
+bash scripts/46-applyThemes.sh            # interactive picker
+bash scripts/46-applyThemes.sh darkmatter # apply one directly
+bash scripts/46-applyThemes.sh otto       # OttoRed
 ```
 
-backing up any existing file first, rebuilding initramfs, and attempting a
-live `modprobe -r usbhid && modprobe usbhid` so you don't have to reboot
-immediately (falls back gracefully to "reboot to apply" if the module is
-busy). Optionally also drops a libinput Xorg conf snippet (tap-to-click,
-natural-scroll off, trackpoint acceleration) — skip this if you're on
-Wayland and just use KDE's own Touchpad settings panel instead.
+### OttoRed, and what it does to an installed Otto
 
-**hardwareSupport.sh** — the "why doesn't my WiFi/Bluetooth work" fix,
-which is almost always a missing non-free firmware blob rather than an
-actual driver bug:
-- Common WiFi/Bluetooth firmware for Intel, Realtek, Atheros, and
-  Broadcom chips (`firmware-iwlwifi`, `firmware-realtek`,
-  `firmware-atheros`, `firmware-brcm80211`, plus the broader
-  `firmware-misc-nonfree`/`firmware-linux`). These are inert on hardware
-  they don't match — small blob files sitting unused in `/lib/firmware` —
-  so installing the common set doesn't conflict with staying minimal.
-- CPU microcode, auto-detected from `/proc/cpuinfo` (`intel-microcode` or
-  `amd64-microcode`, never both, never guessed if detection is
-  inconclusive).
-- `fwupd` for BIOS/UEFI and peripheral firmware updates via LVFS, plus
-  `plasma-discover-backend-fwupd` so updates show up right in Discover —
-  the closest KDE-native equivalent to Mint's Driver Manager.
+`otto` is a dark palette with Otto's signature red. The Otto theme itself is
+**not** in this repository and cannot be fetched by a script — it lives on
+`store.kde.org`, which is behind an Anubis challenge, so installing it is a
+Discover/GUI step. Nothing here is broken by that: with Otto absent, `otto`
+applies as a complete standalone palette and says what it could not find.
 
-**bluetoothSetup.sh** — the layer on top of the firmware blob above: the
-actual bluez stack, Bluedevil (KDE's own applet — no Blueman, that's the
-GTK-desktop equivalent and would just add a second tray icon fighting for
-the same adapter), and Bluetooth *audio* specifically. Detects PipeWire
-vs PulseAudio rather than installing both blind, since that's the part
-that actually trips people up: pairing succeeds, but A2DP stereo silently
-doesn't work because the audio server has no Bluetooth module loaded.
+With Otto installed, `scripts/lib/otto.sh` recolours what it finds in place,
+from copies, and leaves the original package untouched:
 
-**multimediaCodecs.sh** — the single most common "why doesn't this just
-work like Mint" complaint: MP3s, H.264/H.265 video, and DVDs don't play
-out of the box on a stock Debian/Devuan install because the codecs are
-licensing-encumbered and live outside `main`. Installs `ffmpeg` and the
-full GStreamer plugin set, plus `libdvd-pkg` for DVD playback. That last
-one is the one genuine gotcha in this whole toolkit: it builds
-`libdvdcss` from source via a debconf-driven step that can hang waiting
-for input if mishandled. This runs it under
-`DEBIAN_FRONTEND=noninteractive` wrapped in a hard 5-minute `timeout`, so
-the script can never block indefinitely, and then verifies the build
-actually succeeded by checking for the resulting `libdvdcss2` package
-rather than assuming.
+- **Global Theme** — copied to `~/.local/share/plasma/look-and-feel/OttoRed`
+  with `contents/layouts/` and `contents/widgets/` **removed**. That removal
+  is the point: a Global Theme that ships layouts replaces the panel, which
+  would silently undo step 47 along with the user's pinned apps. Otto's
+  `Authors` and `License` are preserved; the `Id` and `Name` become the
+  palette's, so a re-apply updates that copy instead of colliding with the
+  installed one.
+- **Colour scheme** — key-by-key semantic mapping onto the palette
+  (`Background`, `WindowText`, `SelectionBackground`, …), not a blind
+  substitution.
+- **Kvantum** — `.conf` files recoloured across all four notations IM/Qt use
+  (`r,g,b`, `rgb(r,g,b)`, `#rrggbb`, with the `#`). **SVGs are copied
+  untouched**: recolouring Qt's generated SVG state cache is how a theme ends
+  up half-tinted, and Kvantum rebuilds that cache itself.
+- **Konsole** — section-aware recolour (`Color0`–`Color15`, `Background`,
+  `Foreground`, `ColorTab`, …).
+- **Window decoration** — Otto's decoration is registered in the Global
+  Theme's `contents/defaults`, replacing only the `[kwinrc]` block so the
+  section after it survives.
 
-**firefoxHarden.sh** — installs `firefox-esr` if it's missing, pulls the
-pinned [Betterfox](https://github.com/yokoffing/Betterfox) `user.js`
-(privacy/performance prefs), layers a few extra hardening prefs on top,
-installs `policies.json` (disables telemetry/Pocket/sponsored content,
-force-installs uBlock Origin, adds privacy-respecting search engine
-shortcuts), replaces the `.desktop` launcher, and installs a `~/.local/bin`
-wrapper so the hardened profile re-applies on every launch — same
-mechanism as the `harden_firefox.sh` you gave me, just made Devuan-aware
-and defaulted to ESR.
+Every directory this toolkit writes carries a `.devmkde-generated` marker, and
+discovery skips it. Without that, the second `apply_palette otto` finds its own
+output as its "installed Otto" — the generated wrapper declares the name
+`Otto Red`, and the Kvantum copy's id ends in the palette name, so each run
+compounded the last.
 
-**installFonts.sh** — Noto (Latin + Arabic + Emoji), Font Awesome, and
-JetBrainsMono Nerd Font (always the *latest* GitHub release, not pinned,
-with a hardcoded fallback URL if the GitHub API is rate-limited). Also
-writes a `fontconfig` preference file setting sane monospace/sans/serif
-defaults and enabling subpixel hinting.
+Palettes are one file each and the renderer is shared: **11 ship in-tree**
+(`darkmatter`, `darkmatter-orange`, `mocha-red`, `mocha-blue`, `frappe`,
+`nord`, `dracula`, `tokyo-night`, `gruvbox`, `solarized`, `otto`).
 
-**terminalButterbash.sh** — installs the bundled `butterbash/` directory
-(no network dependency on the original repo). Gives you a saner prompt,
-fzf integration, and quality-of-life aliases/functions in bash.
+`14-plasmaTheme.sh` writes a real Plasma 6 Global Theme — `metadata.json`
+plus `contents/defaults`, which is how Plasma 6 actually applies a theme: it
+carries `[kdeglobals][General] ColorScheme=<Name>` and Plasma writes that into
+`kdeglobals` on apply. No stock theme (`org.kde.breezedark.desktop`) ships a
+`contents/colors` or a `layout.js`, and Plasma 6 reads neither — so they are
+never load-bearing. There is no `layout.js` and no `contents/layouts/`; a
+`contents/colors` entry *is* written as a real file copy (never a symlink, which
+Plasma 6 kpackages do not support) purely so older tooling that still looks for
+it keeps working. Deleting it changes nothing Plasma reads. It also writes the Konsole profile, icon theme, accent and a
+generated wallpaper. The GTK /
+xfwm4 Darkmatter theme and the Zafiro icons are **fetched at install time**; no
+binary assets are committed to this repository.
 
-**fastfetchConfig.sh** — installs `fastfetch` (system info on terminal
-open) and pulls a set of curated config presets (`config`/`minimal`/
-`fancy`/`neon`/`debian-red`/`justaguy`/`server`) from the same
-`butterscripts` repo used elsewhere in this toolkit's ecosystem. `neon`
-is set as the default — swap any time with
-`cp ~/.config/fastfetch/<preset>.jsonc ~/.config/fastfetch/config.jsonc`.
+Catppuccin KDE is pinned to tag `v0.4.0`
+(commit `6606b5179cfc1e9ba5c3b6b70e15c468e2dddca2`, tarball SHA256 verified).
 
-**usefulApps.sh** — VLC, archive format support for Ark (7z/rar), Dolphin
-thumbnailers for media/RAW photos, and optionally qBittorrent and TLP
-(laptop power management) if you want them. TLP now also removes
-`power-profiles-daemon` first if present (the two fight over the same
-power knobs — CPU governor, PCIe ASPM — if both run), and on hardware
-that actually exposes a charge-threshold sysfs entry (ThinkPads via
-`thinkpad_acpi`, and some others), offers to cap charging at 80% for
-long-term battery health. Also closes a small gap this toolkit itself
-would otherwise leave open: if `kdeDebloat.sh` removed Dragon Player/
-Elisa earlier, video/audio MIME defaults would otherwise keep pointing
-at a now-uninstalled app. Installing VLC here also points common video/
-audio types at it via `xdg-mime`, so double-clicking a video doesn't hit
-a dead reference.
+## Environment variables
 
-**desktopEssentials.sh** — the "closest to Mint" completeness pass, each
-part its own y/N prompt:
-- **Flatpak + Flathub**, plus `plasma-discover-backend-flatpak` — turns
-  Discover into a unified software center covering both `apt` and
-  Flatpak, similar to Mint's Software Manager.
-- **PackageKit** — without this, Discover has literally no way to see or
-  notify about pending `apt` updates, so the panel's update notification
-  (the closest thing Devuan/Debian has to Mint's Update Manager icon)
-  silently never fires no matter how long you wait.
-- **Printing** — CUPS, `cups-browsed` for automatic network/IPP printer
-  discovery, and `printer-driver-all` (Debian's broad driver metapackage,
-  covering most brands without needing to guess which one you have).
-  Starts the CUPS service and adds you to the `lpadmin` group so you can
-  manage printers from System Settings without a password prompt every
-  time.
-- **KDE Partition Manager** (`partitionmanager`).
-- **Firewall control panel** (`plasma-firewall` + `ufw`) — installed by
-  default; *enabling* it is a separate, still-opt-in-and-off-by-default
-  prompt, with an SSH-safe guard (checks for an active SSH session or a
-  listening sshd and allows port 22 through *before* flipping to
-  default-deny, so this can't lock you out of your own box over SSH).
+| Variable | Effect |
+| --- | --- |
+| `DEVMKDE_ASSUME_YES=1` | Answer every prompt with its default |
+| `DEVMKDE_PRIV=sudo\|doas` | Force a specific privilege escalator |
+| `DEVMKDE_SKIP_APT_UPDATE=1` | Skip every `apt-get update` (and the runner's own) |
+| `DEVMKDE_ISO_BUILD=1` | Relax privilege requirements for ISO bakes |
+| `BUTTERBASH_REF` | Commit-ish `22-terminalButterbash.sh` fetches (default: the pinned commit above) |
+| `BUTTERBASH_URL` | Full archive URL, if you want a mirror instead of Codeberg |
+| `BUTTERBASH_SHA256` | Expected archive hash — **set this with `BUTTERBASH_REF`**, or the pinned hash is checked against a different archive and the install fails closed |
 
-**catppuccinPlasma.sh is the default theming step, `applyThemes.sh` handles
-swapping palettes, and `fancyPlasma.sh`/`plasmaPanel.sh` are optional
-finishes** — there is no longer a single monolithic theme story.
-If you'd like a specific element back by itself (for example the
-[Bali10050/Darkly](https://github.com/Bali10050/Darkly) application style,
-KWin Blur or Magic Lamp effects via `kwinrc`'s `Plugins` group, or
-`krunnerrc`'s `FreeFloating` key), those are all individually documented
-against `fancyPlasma.sh`'s source.
+## How escalation works
 
-**timeshiftSetup.sh** — installs Timeshift, Mint's signature "snapshot
-before a risky change, roll back in a couple clicks if it breaks"
-safety net. On Debian/Devuan the package depends on plain `cron`, not
-systemd, so it works fine on Devuan's default init setup — this was
-checked specifically rather than assumed, since some distros' packaging
-of similar tools does lean on systemd timers. This script makes sure a
-cron daemon is present and installs the tool, but deliberately does
-**not** auto-configure a snapshot device or schedule: that's a one-time
-choice with real disk-space implications, and Timeshift's own setup
-wizard (`sudo timeshift-launcher`, or find it in the app menu) is quick
-and worth doing deliberately rather than guessed on your behalf.
+`scripts/lib/common.sh` owns it. `priv`, `priv_n` and `priv_as` resolve the
+escalator **once** — sudo if present, otherwise doas — and cache the result.
+`DEVMKDE_PRIV` overrides the choice. There is no bare `sudo` anywhere in
+`scripts/`, and the consistency suite fails the build if one reappears.
 
-**networkTimeSync.sh** *(new, defaults to skip)* — enables automatic NTP
-time sync via `chrony`. The toolkit's fallback for machines where nothing
-else sets the clock (cable boxes, offline-first devices, odd routers); on a
-normal NetworkManager-managed desktop it's a harmless no-op. Works under any
-init — systemd, OpenRC, or sysvinit — through the shared `start_service()`
-helper, and verifies with `chronyc tracking` after starting.
+The one script that runs as root is `52-exportToSkel.sh`, and the generated
+cron checker in `32-updateNotifier.sh` resolves its own helper because it ships
+to `~/.local/bin` without the toolkit around it.
 
-**installPhotogimp.sh** *(optional, defaults to skip)* — installs GIMP via
-apt and applies [PhotoGIMP](https://github.com/Diolinux/PhotoGIMP)'s
-Photoshop-like menu layout, keyboard shortcuts, and single-window theme.
-Files are fetched live from GitHub at install time rather than bundled:
-it looks up the latest release tag via the GitHub API, and if that's
-unavailable (rate-limited, etc.) it falls back to a pinned known-good tag
-(currently `3.1`) so the script still works. Either way it downloads that
-tag's source tarball via `codeload.github.com`, verifies the expected
-`.config/GIMP/3.0/` layout is actually present before touching anything,
-and only then proceeds.
+## Testing
 
-Two deliberate adaptations from the upstream files:
-- The upstream `.desktop` file assumes GIMP was installed via **Flatpak**
-  (`Exec=flatpak run ... org.gimp.GIMP`). This installs GIMP natively via
-  `apt` instead (consistent with the rest of this toolkit), so the `Exec`
-  line is rewritten to launch the real `/usr/bin/gimp` — everything else
-  in the `.desktop` file (name, icon, MIME types) is left untouched.
-- PhotoGIMP's config targets GIMP **3.0**'s config format
-  (`~/.config/GIMP/3.0/`), which is what Devuan Excalibur/Debian trixie's
-  `apt` package installs. GIMP 2.10 uses an incompatible config layout, so
-  the script checks the actually-installed GIMP version first and refuses
-  to apply the config if it doesn't match, rather than silently copying
-  files GIMP won't understand.
+```bash
+make check          # everything (same as ./tests/run.sh)
+make lint           # tier 1
+make unit           # tier 2
+make consistency    # tier 3
+make apt-checks     # tier 3, package existence
+make negative-controls   # prove each guard fails on its regression
+make release-preflight
+```
 
-Any existing GIMP config is backed up (timestamped) before PhotoGIMP's
-files are laid down, and it's an overlay, not a wipe — anything you
-already had that PhotoGIMP doesn't ship (custom brushes, scripts, etc.)
-is left in place.
+Three tiers, **all read-only** — no root, no apt mutation, no X, no network,
+nothing written outside `/tmp`:
 
-**installVscodium.sh** *(optional, defaults to skip)* — installs
-[VSCodium](https://vscodium.com) (telemetry-free VS Code build) through its
-official APT repository, so it keeps updating via normal `apt upgrade`
-instead of going stale like a one-off downloaded `.deb` would.
+1. **Lint** — `bash -n` everywhere, `shellcheck` when installed, a guard
+   against `[ -n "$x" && "$x = y ]` (which prints `[: missing ]` and still
+   runs the branch), and a check that every script sourcing `common.sh` can
+   actually source it.
+2. **Unit** — sandboxed tests: the privilege helpers against fake `sudo`/`doas`
+   so escalation is never real, the theme engine rendering into a temporary
+   `THEME_HOME_DIR` rather than your actual `~/.local/share`, and the runner's
+   list/filter behaviour.
+3. **Consistency + apt** — VERSION↔RELEASE.md, README↔scripts↔on-disk,
+   no bare `sudo`, no Plasma 5 spellings creeping back in, palette
+   variable-set drift, and read-only `apt-cache` existence checks for all 219
+   package names the scripts reference (with deliberate non-archive names listed
+   and explained in `tests/lib/known-miss.list`).
 
-**gamingSetup.sh** *(optional, defaults to skip — asks per-component)*:
-- **Core gaming libraries** — Vulkan (64+32-bit), Mesa utils, GameMode,
-  MangoHud.
-- **Steam** — installed via **Valve's own `steam_latest.deb`**
-  (`repo.steampowered.com`), not Debian's contrib package. This was a
-  deliberate choice: it needs zero edits to `/etc/apt/sources.list` (no
-  contrib/non-free wrangling), and the `.deb` sets up Valve's own signed
-  APT repo for itself so it keeps updating normally afterward.
-- **Heroic Games Launcher** — always grabs the *latest* release `.deb`
-  straight from the GitHub API (not pinned to v2.22.0), so it won't go
-  stale as new versions ship.
-- **Wine** — enables i386 multiarch and installs `wine` + `winetricks` so
-  you can run Windows `.exe` apps directly. Run `winecfg` once afterward to
-  set up your first Wine prefix.
+`make check` also runs `tests/negative-controls.sh`, which injects each
+regression this release fixed into a throwaway copy of the repo and requires
+the suite to **fail** on it. An all-green suite proves nothing on its own — the
+cheapest way to get one is to delete the assertions — so every guard here has a
+demonstrated failure. 19 controls, 19 caught.
 
-**vscodiumDevSetup.sh** *(optional, defaults to skip — asks per-section)* —
-configures VSCodium for C++ and Python coursework. Installs itself first via
-`installVscodium.sh` if it isn't already present. Worth knowing before you
-run it:
+## Verification
 
-Two extensions people expect from real VS Code **do not work on VSCodium**,
-so this uses what the VSCodium community actually settled on instead:
+```bash
+bash scripts/verifySetup.sh
+```
 
-- **C/C++**: Microsoft's `ms-vscode.cpptools` added a license-enforced
-  runtime check in April 2025 that refuses to run on VSCodium/Cursor/other
-  forks — it's not "unavailable," it's actively blocked. This installs
-  **clangd** (language server) + **CodeLLDB** (debugger) instead, which is
-  open-source, on Open VSX, and works well for GCC/Clang projects on Linux.
-  Packages: `build-essential gdb clangd clang-format cmake`.
-- **Python**: **Pylance** is closed-source and Microsoft has confirmed on
-  the record it will never publish it to Open VSX. This installs
-  **basedpyright** instead — an actively maintained open-source Pyright
-  fork that specifically reimplements most of Pylance's IntelliSense
-  features for VSCodium users, alongside `ms-python.python` (still fine —
-  it's open-source) and **Ruff** for fast linting/formatting.
-  Packages: `python3 python3-pip python3-venv`.
+Read-only check of what the toolkit expects to find. Optional items are
+reported as optional rather than failed, so it is meaningful on a fresh
+minimal install too.
 
-Then it:
-- Writes sane defaults into VSCodium's `settings.json` — but **merges**
-  them in via a small Python script rather than overwriting the file: your
-  existing settings are always backed up first, and any key you've already
-  set yourself is left alone. Sets `python.languageServer: None` because
-  basedpyright's own docs require it (otherwise you get duplicate
-  diagnostics from `ms-python.python`'s built-in Jedi server).
-- Creates a starter project at `~/Projects/vscodium-starter` with a
-  `main.cpp` and `main.py` plus a working `tasks.json`/`launch.json`, so
-  `Ctrl+Shift+B` builds and `F5` debugs immediately in both languages —
-  nothing to hand-configure first. Skipped automatically if that folder
-  already exists, so it won't touch your own projects.
+## Adding a step
 
-One thing left out on purpose: some gaming-setup scripts also force
-Wayland-specific env vars (`SDL_VIDEODRIVER=wayland`, a hardcoded
-`WAYLAND_DISPLAY=wayland-0`, etc.) globally via `~/.profile`. Those were
-written for a bare Sway session and can fight with KDE Plasma's own
-per-app scaling under a Plasma Wayland session, so this toolkit doesn't
-apply them. If Steam or Heroic look blurry/mis-scaled under Plasma
-Wayland, that's worth a dedicated look rather than a blanket env-var
-hack — ask and I'll put together something KDE-specific.
+Create `scripts/NN-camelCase.sh` with the three metadata headers, source
+`scripts/lib/common.sh` for `priv`/`install_pkgs`/`ask`/`log_*`, then:
 
-**aiOpencode.sh** — installs the [OpenCode](https://opencode.ai) AI
-coding agent, binds Super+A to launch it in a terminal, and drops a
-system "skill" file so AI tools (this one, Claude Code, etc.) know
-they're on a Devuan/KDE box rather than guessing. The hotkey goes
-through kglobalaccel — a `.desktop` launcher with
-`X-KDE-GlobalAccel-CommandShortcut=true`, referenced from
-`~/.config/kglobalshortcutsrc` — the same mechanism System Settings'
-own Shortcuts > "Add Command..." uses internally. Like this toolkit's
-other KDE config writes, it takes effect at your next login, not live.
+```bash
+make check        # headers, README row, syntax and package names all enforced
+```
 
-**devToolsExtras.sh** *(optional, defaults to skip)* — a curated grab
-bag: btop, eza, bat, a zoxide presence check, Neovim + lazy.nvim with a
-minimal starter config, and KeePassXC.
+The consistency suite will tell you exactly which of those you forgot.
 
-**vesktopTelegram.sh** *(optional, defaults to skip — asks per-app)*:
+## Safety notes
 
+- Backups (`*.bak.<timestamp>`) precede every destructive config write.
+- Nothing is force-purged blindly: each apt action checks what is actually
+  installed first, so scripts are safe to re-run.
+- The runner keeps its state log at `~/.local/state/devuan-kde-setup/last-run.log`.
+- `12-kdeDebloat.sh` removes Plasma's bundled games, education and PIM apps.
+  It defaults to **Y** but it is the one step worth reading before answering.
 
-- **Vesktop** — Vencord's standalone Discord client (better Linux/Wayland
-  support, screen-share, built-in Vencord mods), installed from its
-  *latest* GitHub release `.deb` via the GitHub API — not pinned to
-  v1.6.5, so it keeps working as new versions ship.
-- **Telegram Desktop** — same method as your `DiscordAndTelegram.sh`:
-  official `tar.xz` from `telegram.org/dl/desktop/linux`, extracted to
-  `~/.local/opt/Telegram`, symlinked into `~/.local/bin/telegram`, with a
-`.desktop` entry. No sudo needed for this half at all — it's entirely
-user-space.
+## Licence
 
-**verifySetup.sh** — the end-state audit `run.sh --verify` calls. Checks
-exactly what the toolkit claims to set up: `input`/`video`/`render` group
-membership, the key packages (VLC, TLP, firmware, codecs, firefox-esr,
-fonts, fastfetch, flatpak, timeshift, bluez, fwupd), the JetBrainsMono Nerd
-Font, Firefox's hardened `user.js`, the Catppuccin theme, and that
-bluetooth/tlp/cups/chrony are running. The Konsole/color-scheme checks read
-the active palette's `PALETTE_SHORT` from the theme-engine marker, so
-verifying stays accurate after a `applyThemes.sh` palette swap. Runs read-only, prints
-`PASS/FAIL/WARN`, exits non-zero if anything critical failed. Optional
-packages (gaming, messaging, dev tools) are `WARN`, not `FAIL`, so a lean
-install doesn't false-alarm.
-
-**configBackup.sh** — `backup` (default) / `list` / `restore` subcommands
-for the per-user config this toolkit creates: `~/.config` (browser
-profiles and caches excluded), fonts, Konsole/color-scheme/plasma dirs,
-`~/.local/bin`, and your dotfiles, into a timestamped archive that rotates
-to the 5 newest. Pair it with `exportToSkel.sh` for a machine that keeps
-its look across reinstalls. `CONFIG_BACKUP_DIR=/path` overrides the output
-dir.
-
-**systemMaintenance.sh** — periodic tidy, init-agnostic: `autoclean` +
-`autoremove`, removal of the now-obsolete empty `pipewire-audio-client-
-libraries` transitional package if it lingers, deletion of dead
-`~/.local/bin` symlinks (toasts for e.g. Telegram moved out of
-`~/.local/opt`), and an optional `full-upgrade`. Every step asks.
-
-**exportToSkel.sh** — copies the baked per-user defaults (fonts, Konsole
-profile/colors, fastfetch config, `.desktop` entries) into `/etc/skel`, so
-*every future account* on the machine starts with them. Used by the ISO
-build (the bake hook runs it inside the chroot); also useful on a
-multi-user box. `--force` is required to overwrite existing skel files,
-and `--list`/`--dry-run` preview without changing anything.
-
-## Building it as an ISO
-
-See **`iso/README.md`**. `sudo ./iso/build.sh` wraps Devuan's `live-build`
-fork to produce a Devuan Excalibur amd64 ISO with KDE Plasma and the
-toolkit's end state **pre-baked**: `iso/config/hooks/live/*.chroot` runs
-`run.sh --phase core` + `exportToSkel.sh` inside the chroot with
-`DEVMKDE_ASSUME_YES=1 DEVMKDE_ISO_BUILD=1` (so prompts auto-answer and the
-root-only helpers tolerate a plain-root build chroot), injecting the
-toolkit itself via `includes.chroot`. `refractainstaller` is in the image
-for install-to-disk. **Status: faithful scaffold, not yet burned on a
-build host** — see `iso/README.md`. An optional GitHub Actions recipe is
-included (`iso.yml.pending`) but disabled by default — rename it to
-`.github/workflows/iso.yml` to let CI build the ISO for you.
-
-## Notes / things worth knowing before you run it
-
-- **Environment variables** the toolkit honors (all optional):
-
-  | Variable | Effect |
-  |---|---|
-  | `DEVMKDE_ASSUME_YES=1` | every `ask()` takes its default — used by `run.sh --yes` and the ISO bake hooks |
-  | `DEVMKDE_SKIP_APT_UPDATE=1` | `apt_update()` is a no-op — exported by `run.sh` after its single refresh; scripts skip their own `apt-get update` |
-  | `DEVMKDE_ISO_BUILD=1` | let scripts run as plain root inside a build chroot (skips `require_not_root`) — set by `iso/config/hooks/live/bake-devuan-kde.chroot` |
-  | `CONFIG_BACKUP_DIR=/path` | where `configBackup.sh` writes/reads archives (default `$HOME`) |
-  | `SKEL_DIR=/path` | target dir for `exportToSkel.sh` (default `/etc/skel`) |
-  | `DEVUAN_MIRROR=http://...` | mirror used by `iso/build.sh` for reproducible ISO rebuilds |
-
-- **How downloads are verified.** Anything this toolkit fetches is checked
-  structurally after download — non-empty, and a valid archive of its kind
-  (`.tar.xz`/`.tar.gz`/`.deb`/`.zip` via their native tools, so a truncated
-  download or a 404-HTML body is caught before extraction), and the computed
-  SHA-256 is logged so you can eyeball it against a release page. Strict
-  checksum comparison is only claimed where upstream publishes a known hash;
-  the Nerd Font download fetches and checks against upstream's signed
-  `JetBrainsMono.tar.xz.sha256`. (Package downloads from `apt` are covered
-  by APT's own signature/checksum machinery.)
-
-- Every apt action first checks what's *actually installed* — nothing is
-  blindly force-purged, so re-running is safe and idempotent.
-- `kdeDebloat.sh` never removes Plasma itself, only bundled apps. If you
-  rely on Kontact/KMail for email, or KDE's education apps, just answer
-  `n` to that specific category.
-- Devuan doesn't run systemd, so anything that would normally be
-  `systemctl enable --now foo` falls back to the OpenRC
-  (`rc-update add <svc> default && rc-service <svc> start`) or sysvinit
-  (`service <svc> start`) path where relevant (TLP, CUPS, fwupd) — but
-  most of what's here (Baloo, apt, config files, modprobe, cron) is
-  init-system agnostic. Timeshift in particular was specifically
-  checked to depend on plain `cron` rather than systemd before it went
-  in this toolkit.
-- Nothing in this toolkit auto-enables a firewall deny rule — you turn
-  that on yourself once you've confirmed it's safe. Same philosophy as
-  everything else here: install and get out of the way, don't silently
-  change your machine's behavior in ways you didn't ask for.
-- Reboot (or at least log out/in) after a full run — group membership,
-  the mousepoll fix, newly installed firmware/microcode, and Baloo all
-  benefit from a fresh session.
+GPL-2.0-or-later.
