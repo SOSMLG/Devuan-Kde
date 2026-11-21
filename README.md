@@ -1,20 +1,17 @@
+![banner](assets/banner.svg)
+
 # Devuan KDE
 
-![Devuan 6](https://img.shields.io/badge/Devuan-6-202329?logo=devuan&logoColor=E8A33D)
-![Debian 13](https://img.shields.io/badge/Debian-13-202329?logo=debian&logoColor=E8A33D)
-![KDE Plasma 6](https://img.shields.io/badge/Plasma-6-202329?logo=kde&logoColor=E8A33D)
-![License: GPL-2.0](https://img.shields.io/badge/License-GPL--2.0-8FB57A.svg)
+polishes an existing kde plasma install on devuan 6 or debian 13 with codecs, firmware, printing, timeshift and a graphite amber theme across sddm, grub and konsole.
 
-Post-install polish for a Devuan (or Debian) box where **KDE Plasma is already
-installed** by the distro's own installer. This toolkit does not install KDE. It
-debloats the default Plasma task toward a minimal-but-functional desktop, then
-fills in the "why doesn't this just work" gaps: codecs, WiFi/Bluetooth
-firmware, a software center, printing, a firewall panel, Timeshift snapshots,
-and a complete Graphite Amber visual identity — Global Theme, icons, Konsole
-profile, Plymouth splash, GRUB menu and SDDM login screen.
+[read the quick start](#quick-start)
 
-Written against **Plasma 6.3 / KDE Frameworks 6.13** on **Devuan 6 (Excalibur)**
-(Debian 13 / Trixie compatible).
+| | |
+| --- | --- |
+| **starting point** | kde is already installed by the distro. this toolkit does not install it. |
+| **adds** | codecs, wifi and bluetooth firmware, a software center, printing, a firewall panel and snapshots. |
+| **theme** | global theme, icons, konsole, plymouth, grub and sddm all follow one palette. |
+| **verify** | `./install.sh` runs every step then verifies. `./run.sh --verify` rechecks state. |
 
 ## Quick start
 
