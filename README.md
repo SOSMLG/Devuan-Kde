@@ -1,5 +1,10 @@
 # Devuan KDE
 
+![Devuan 6](https://img.shields.io/badge/Devuan-6-9B183E?logo=devuan&logoColor=white)
+![Debian 13](https://img.shields.io/badge/Debian-13-A81D33?logo=debian&logoColor=white)
+![KDE Plasma 6](https://img.shields.io/badge/Plasma-6-3B8EE9?logo=kde&logoColor=white)
+![License: GPL-2.0](https://img.shields.io/badge/License-GPL--2.0-green.svg)
+
 Post-install polish for a Devuan (or Debian) box where **KDE Plasma is already
 installed** by the distro's own installer. This toolkit does not install KDE. It
 debloats the default Plasma task toward a minimal-but-functional desktop, then
@@ -56,7 +61,7 @@ bash scripts/51-systemMaintenance.sh
 .
 ├── run.sh                  # the runner — start here
 ├── install.sh              # unattended wrapper (--full --yes --verify)
-├── Makefile                # test + release targets
+├── Makefile                # release, archive and listing targets
 ├── VERSION / RELEASE.md    # release metadata
 ├── themes/
 │   ├── _base/tpl/          # templates (colors, konsole, …)
@@ -254,46 +259,11 @@ Catppuccin KDE is pinned to tag `v0.4.0`
 `scripts/lib/common.sh` owns it. `priv`, `priv_n` and `priv_as` resolve the
 escalator **once** — sudo if present, otherwise doas — and cache the result.
 `DEVMKDE_PRIV` overrides the choice. There is no bare `sudo` anywhere in
-`scripts/`, and the consistency suite fails the build if one reappears.
+`scripts/`.
 
 The one script that runs as root is `52-exportToSkel.sh`, and the generated
 cron checker in `32-updateNotifier.sh` resolves its own helper because it ships
 to `~/.local/bin` without the toolkit around it.
-
-## Testing
-
-```bash
-make check          # everything (same as ./tests/run.sh)
-make lint           # tier 1
-make unit           # tier 2
-make consistency    # tier 3
-make apt-checks     # tier 3, package existence
-make negative-controls   # prove each guard fails on its regression
-make release-preflight
-```
-
-Three tiers, **all read-only** — no root, no apt mutation, no X, no network,
-nothing written outside `/tmp`:
-
-1. **Lint** — `bash -n` everywhere, `shellcheck` when installed, a guard
-   against `[ -n "$x" && "$x = y ]` (which prints `[: missing ]` and still
-   runs the branch), and a check that every script sourcing `common.sh` can
-   actually source it.
-2. **Unit** — sandboxed tests: the privilege helpers against fake `sudo`/`doas`
-   so escalation is never real, the theme engine rendering into a temporary
-   `THEME_HOME_DIR` rather than your actual `~/.local/share`, and the runner's
-   list/filter behaviour.
-3. **Consistency + apt** — VERSION↔RELEASE.md, README↔scripts↔on-disk,
-   no bare `sudo`, no Plasma 5 spellings creeping back in, palette
-   variable-set drift, and read-only `apt-cache` existence checks for all 219
-   package names the scripts reference (with deliberate non-archive names listed
-   and explained in `tests/lib/known-miss.list`).
-
-`make check` also runs `tests/negative-controls.sh`, which injects each
-regression this release fixed into a throwaway copy of the repo and requires
-the suite to **fail** on it. An all-green suite proves nothing on its own — the
-cheapest way to get one is to delete the assertions — so every guard here has a
-demonstrated failure. 19 controls, 19 caught.
 
 ## Verification
 
@@ -308,13 +278,9 @@ minimal install too.
 ## Adding a step
 
 Create `scripts/NN-camelCase.sh` with the three metadata headers, source
-`scripts/lib/common.sh` for `priv`/`install_pkgs`/`ask`/`log_*`, then:
-
-```bash
-make check        # headers, README row, syntax and package names all enforced
-```
-
-The consistency suite will tell you exactly which of those you forgot.
+`scripts/lib/common.sh` for `priv`/`install_pkgs`/`ask`/`log_*`, add it to the
+step table in this README, then check it with `bash -n` and
+`bash run.sh --list`.
 
 ## Safety notes
 
@@ -325,6 +291,16 @@ The consistency suite will tell you exactly which of those you forgot.
 - `12-kdeDebloat.sh` removes Plasma's bundled games, education and PIM apps.
   It defaults to **Y** but it is the one step worth reading before answering.
 
-## Licence
+## License
 
-GPL-2.0-or-later.
+GPL-2.0-or-later. See [LICENSE](LICENSE). Vendored components keep their own
+license files.
+
+## Related repos
+
+- [DebianSway](https://github.com/SOSMLG/DebianSway): Sway on Debian/Devuan.
+- [DevuanSway](https://github.com/SOSMLG/DevuanSway): Sway on Devuan with OpenRC.
+- [DevuanDwm](https://github.com/SOSMLG/DevuanDwm): minimal dwm desktop for Devuan.
+- [devuan-cinnamon-setup](https://github.com/SOSMLG/devuan-cinnamon-setup): Cinnamon on Devuan.
+- [XfceMlg](https://github.com/SOSMLG/XfceMlg): XFCE desktop toolkit.
+- [ThisForOldPc](https://github.com/SOSMLG/ThisForOldPc): setup for old PCs.

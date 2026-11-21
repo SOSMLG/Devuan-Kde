@@ -326,7 +326,7 @@ apply_palette() {
     # NOTE: these keys are CASE-SENSITIVE and Plasma 6 capitalised them.
     # Writing `accentColor` (the Plasma 5 spelling) silently does nothing, so
     # the accent reverts to blue on every login -- the single most common
-    # "why isn't my theme applying?" bug. See tests/ for the guard.
+    # "why isn't my theme applying?" bug. Keep the spelling exact.
     if [ -n "$KWRITECONFIG" ] || [ -n "${THEME_HOME_DIR:-}" ]; then
         if persist_palette_keys "$home_dir"; then
             log_ok "Default Konsole profile + Plasma color scheme + accent (#${C_ACCENT}) persisted."

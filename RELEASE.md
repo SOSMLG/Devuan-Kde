@@ -1,4 +1,7 @@
-# Release notes — Devuan KDE
+# Release notes - Devuan KDE
+
+Historical entries below describe the former test suite, which is no longer
+part of this repo. Runtime verification lives in `scripts/verifySetup.sh`.
 
 ## 1.0.0
 
