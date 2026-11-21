@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  shell:
+    name: Shell validation
+    uses: SOSMLG/.github/.github/workflows/validate-shell.yml@main
+
+  powershell:
+    name: PowerShell validation
+    uses: SOSMLG/.github/.github/workflows/validate-powershell.yml@main
+
+  data:
+    name: Data validation
+    uses: SOSMLG/.github/.github/workflows/validate-json-xml.yml@main
+
+  docs:
+    name: Docs validation
+    uses: SOSMLG/.github/.github/workflows/validate-docs.yml@main

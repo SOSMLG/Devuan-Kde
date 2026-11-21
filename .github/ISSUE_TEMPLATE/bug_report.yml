@@ -1,0 +1,48 @@
+name: Bug report
+description: Something does not work as documented.
+title: "[bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: Keep it short. Include the repo, the command and the observed output.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of the stack is affected?
+      options:
+        - Linux
+        - Windows
+        - Docs
+        - CI
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What did you run and what did you see?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Commit or tag
+      description: Optional. Paste a commit hash or release tag.
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before opening
+      options:
+        - label: I ran the read-only verifier or captured the exact error.
+          required: false

@@ -1,0 +1,31 @@
+name: Docs update
+description: Fix or clarify documentation.
+title: "[docs]: "
+labels: ["documentation"]
+body:
+  - type: markdown
+    attributes:
+      value: English is canonical. Arabic translations follow the English text.
+  - type: input
+    id: file
+    attributes:
+      label: File
+      description: Path to the document.
+    validations:
+      required: true
+  - type: textarea
+    id: change
+    attributes:
+      label: Change
+      description: What should be added, removed or reworded?
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I checked the linked files still exist.
+          required: false
+        - label: I will update the Arabic version if one exists.
+          required: false

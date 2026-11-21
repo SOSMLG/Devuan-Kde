@@ -1,0 +1,31 @@
+name: Feature request
+description: Suggest a small, focused improvement.
+title: "[feat]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: One request per issue. Include the reason, not only the idea.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What is missing or awkward today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: What should change?
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Constraints
+      options:
+        - label: This does not add tests.
+          required: true
+        - label: This does not add secrets to the repository.
+          required: true

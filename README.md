@@ -304,3 +304,7 @@ license files.
 - [devuan-cinnamon-setup](https://github.com/SOSMLG/devuan-cinnamon-setup): Cinnamon on Devuan.
 - [XfceMlg](https://github.com/SOSMLG/XfceMlg): XFCE desktop toolkit.
 - [ThisForOldPc](https://github.com/SOSMLG/ThisForOldPc): setup for old PCs.
+
+## Repository standard
+
+This repo follows the SOSMLG standard: [contributing](CONTRIBUTING.md), [security](SECURITY.md), [changelog](CHANGELOG.md). Local workflow: [English guide](https://github.com/SOSMLG/.github/blob/main/docs/GIT_GUIDE.md) / [Arabic guide](https://github.com/SOSMLG/.github/blob/main/docs/GIT_GUIDE.ar.md).
