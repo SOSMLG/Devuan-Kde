@@ -3,7 +3,7 @@
 Post-install polish for a Devuan 6 (Excalibur) / Debian 13 (Trixie) box where
 KDE Plasma 6 is already installed. The toolkit does not install Plasma. It
 trims the distro task, installs missing desktop pieces, and applies a
-Darkmatter visual identity to Plasma, Konsole, LightDM/SDDM, GRUB and Plymouth.
+Graphite Amber visual identity to Plasma, Konsole, LightDM/SDDM, GRUB and Plymouth.
 
 ## Entry points
 

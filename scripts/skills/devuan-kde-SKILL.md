@@ -109,8 +109,9 @@ issues on this system:
   `.colors` file, and the kdeglobals accent. `applyThemes.sh` picks a
   palette; the current one is in
   `~/.local/state/devuan-kde-setup/current-theme`. Kit: **12 palettes** —
-  darkmatter (default), darkmatter-orange, mocha-red, mocha-blue, moe-dark,
-  frappe, nord, dracula, tokyo-night, gruvbox, solarized, otto. Keep `14-plasmaTheme.sh` and
+  graphite-amber (default), graphite-amber-cool, graphite-amber-light,
+  darkmatter, darkmatter-orange, moe-dark, nord, dracula, tokyo-night, gruvbox,
+  solarized, otto. Keep `14-plasmaTheme.sh` and
   `46-applyThemes.sh` agreeing on the default; consistency test 5b fails the
   build if they drift.
   - The state path must be resolved **lazily** (`theme_state_dir`), never at

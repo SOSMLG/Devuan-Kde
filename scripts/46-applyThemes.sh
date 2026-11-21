@@ -3,26 +3,26 @@
 # DEVMKDE_DEFAULT: Y
 # DEVMKDE_PHASE: optional
 # =======================================================
-# applyThemes.sh — swap the active KDE Plasma palette
+# applyThemes.sh -- swap the active KDE Plasma palette
 # -------------------------------------------------------
 # The theme engine ships 12 palettes, each a palette_<id>() function in
 # themes/palettes.sh. A palette is a single source of truth for a full look:
 # Konsole scheme + profile, Plasma color scheme (.colors) and the kdeglobals
 # accent color.
 #
-# Two palettes go one step further, both best-effort — the palette itself is
+# Two palettes go one step further, both best-effort -- the palette itself is
 # fully applied either way:
 #
 #   otto      if the Otto Plasma theme is installed (Discover), its Global
 #             Theme, Kvantum and window decoration are recoloured to match, so
 #             the whole desktop shares one red. Nothing about it requires Otto
-#             — see scripts/lib/otto.sh.
+#             -- see scripts/lib/otto.sh.
 #   moe-dark  installs the pinned upstream Moe v2.6 Global Theme from a mirror
 #             and sanitises it, so the desktop carries Moe's own identity with
-#             the panel and the components Moe does not ship left alone — see
+#             the panel and the components Moe does not ship left alone -- see
 #             scripts/lib/moe.sh.
 #
-#   applyThemes.sh               interactive picker (default: darkmatter)
+#   applyThemes.sh               interactive picker (default: graphite-amber)
 #   applyThemes.sh <palette-id>  apply that palette directly
 #   applyThemes.sh --list        list available palettes
 #
@@ -54,9 +54,9 @@ usage() {
 }
 
 # One source of truth for the shipped palette, shared with 14-plasmaTheme.sh.
-DEFAULT_PALETTE="${DEVMKDE_DEFAULT_PALETTE:-darkmatter}"
+DEFAULT_PALETTE="${DEVMKDE_DEFAULT_PALETTE:-graphite-amber}"
 
-log_head "Devuan KDE — color palette"
+log_head "Devuan KDE -- color palette"
 
 case "${1:-}" in
     --list|-l|help|--help|-h)
@@ -64,16 +64,15 @@ case "${1:-}" in
         exit 0
         ;;
     "")
-        # no arg: interactive picker, darkmatter as the default answer.
-        # This must stay in step with DEFAULT_PALETTE in 14-plasmaTheme.sh —
-        # install.sh exports DEVMKDE_ASSUME_YES, so an unattended run of this
-        # step used to land on the pre-migration Catppuccin palette instead of
-        # the Darkmatter one the toolkit had just installed.
+        # no arg: interactive picker, graphite-amber as the default answer.
+        # This must stay in step with DEFAULT_PALETTE in 14-plasmaTheme.sh:
+        # install.sh exports DEVMKDE_ASSUME_YES, so an unattended run must land
+        # on the same palette the toolkit just installed.
         list_palettes | while IFS='|' read -r id short name; do
             printf '%s\n' "  $id  ($name)"
         done
         if [ "${DEVMKDE_ASSUME_YES:-0}" = "1" ]; then
-            log_info "DEVMKDE_ASSUME_YES set — applying the default palette instead of prompting."
+            log_info "DEVMKDE_ASSUME_YES set -- applying the default palette instead of prompting."
             apply_palette "$DEFAULT_PALETTE"
             exit $?
         fi

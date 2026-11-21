@@ -130,9 +130,10 @@ and says so, instead of writing keys nothing reads.
 
 ### Theming
 - Palettes live in `themes/palettes.sh` as `palette_<id>()` functions; templates in
-  `themes/_base/tpl/`. 12 palettes ship in-tree — `darkmatter`,
-  `darkmatter-orange`, `mocha-red`, `mocha-blue`, `moe-dark`, `frappe`, `nord`,
-  `dracula`, `tokyo-night`, `gruvbox`, `solarized`, `otto`.
+  `themes/_base/tpl/`. 12 palettes ship in-tree — `graphite-amber` (default),
+  `graphite-amber-cool`, `graphite-amber-light`; legacy/optional: `darkmatter`,
+  `darkmatter-orange`, `moe-dark`, `nord`, `dracula`, `tokyo-night`, `gruvbox`,
+  `solarized`, `otto`.
 - `14-plasmaTheme.sh` renders the selected palette into a Plasma 6 Global
   Theme (`contents/colors` is a **real copy, not a symlink** — Plasma 6
   kpackages do not support one there), Konsole profile, accent, icon theme and
@@ -174,11 +175,9 @@ and says so, instead of writing keys nothing reads.
     `-function polynomial 6,-5,1` maps 0→1 and 1→2, which on a near-black
     palette does not add contrast but inverts the image into the highlights
     (measured 5.5% mean brightness without it, 74% with it).
-- Catppuccin KDE is pinned to tag `v0.4.0`, commit
-  `6606b5179cfc1e9ba5c3b6b70e15c468e2dddca2`, tarball SHA256
-  `79ff6736afef26eb49a978392174801f2a6d28c7e328ac79499e10da8a55f1b9`.
-- The Darkmatter GTK/xfwm4 theme and Zafiro icons are **fetched at install
-  time**, never committed; the tree carries no binary assets.
+- The Plasma, GTK and boot/login looks are generated from in-tree palette
+  values; no third-party theme tarball or binary asset is fetched for them.
+  The GTK side uses the stock `Adwaita-dark` base.
 
 ### Testing
 Three read-only tiers, `make check` or `./tests/run.sh`:

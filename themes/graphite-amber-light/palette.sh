@@ -1,0 +1,36 @@
+PALETTE_ID="graphite-amber-light"
+PALETTE_NAME="Graphite Amber (Light)"
+PALETTE_SHORT="GraphiteAmberLight"
+PALETTE_DESC="Lifted graphite surfaces with the same warm amber accent."
+
+C_BG=202329
+C_MANTLE=282c33
+C_CRUST=16181d
+C_SURFACE0=30343b
+C_SURFACE1=3b4048
+C_OVERLAY0=575d67
+C_OVERLAY1=757c87
+C_TEXT=d8d3c8
+C_SUBTEXT0=9a9aa2
+C_SUBTEXT1=b5b0a6
+
+C_ACCENT=e8a33d
+C_ACCENT_FG=16181d
+C_ACCENT_DIM=d2992f
+
+C_0=30343b
+C_1=c97064
+C_2=8fb57a
+C_3=e8a33d
+C_4=7e9db5
+C_5=a78bb5
+C_6=79a9a6
+C_7=9a9aa2
+C_8=4a4e57
+C_9=c97064
+C_10=8fb57a
+C_11=e8a33d
+C_12=7e9db5
+C_13=a78bb5
+C_14=79a9a6
+C_15=d8d3c8

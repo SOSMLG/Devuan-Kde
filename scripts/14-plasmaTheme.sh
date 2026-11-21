@@ -1,50 +1,20 @@
 #!/usr/bin/env bash
-# DEVMKDE_DESC: The look: Darkmatter palette + Global Theme, accent, Konsole profile, icons, wallpaper
+# DEVMKDE_DESC: The look: Graphite Amber palette + Global Theme, accent, Konsole profile, icons, wallpaper
 # DEVMKDE_DEFAULT: Y
 # DEVMKDE_PHASE: core
 # =======================================================
-# Plasma Theme — the toolkit's unified theming step
+# Plasma Theme -- the toolkit's unified theming step
 # -------------------------------------------------------
-# The whole visual identity in one script:
-#   1. Palette engine (Darkmatter by default): renders a Plasma color
+# The whole visual identity in one script, all local:
+#   1. Palette engine (Graphite Amber by default): renders a Plasma color
 #      scheme + Global Theme, Konsole scheme + profile, and the accent
-#      from themes/palettes.sh via scripts/lib/theme.sh. This is
-#      self-contained -- no network, no upstream theme required, and it
-#      installs cleanly on a headless box.
-#   2. The official Catppuccin Global Theme (app style, window decoration,
-#      splash, cursor) from the pinned upstream release -- the shipped
-#      default. This owns the Plasma look: widgets, aurorae window
-#      decoration, cursor and splash all come from upstream, maintained by
-#      Catppuccin. The palette above stays in charge of Konsole, the
-#      wallpaper and the generated .colors file, and
-#      scripts/lib/theme.sh re-applies Catppuccin after any later palette
-#      swap so this look is what you keep.
-#   3. A KDE-native icon set -- Papirus-Dark (Debian's own
+#      from themes/palettes.sh via scripts/lib/theme.sh. No network and
+#      no upstream theme required; it installs cleanly on a headless box.
+#   2. A KDE-native icon set -- Papirus-Dark (Debian's own
 #      papirus-icon-theme): every Plasma app ships a Papirus icon, uses
 #      real KDE-friendly symlink handling, and tints dark properly.
-#   4. A locally generated wallpaper (ImageMagick, no download), tinted
+#   3. A locally generated wallpaper (ImageMagick, no download), tinted
 #      to whichever palette you picked.
-#
-# Why a pinned tarball instead of `git clone --depth=1`
-# ----------------------------------------------------
-# A shallow clone tracks whatever the default branch points at *today*:
-# re-running this step months later silently installs a different theme,
-# and a compromised or force-pushed upstream tag becomes a supply-chain
-# hole. We fetch one immutable commit's tarball and verify its SHA256, so
-# this step is reproducible forever. Override the pins only if you know
-# why you need to:
-#   CATPUCCIN_KDE_REF=6606b5179cfc1e9ba5c3b6b70e15c468e2dddca2
-#   CATPUCCIN_KDE_SHA256=79ff6736afef26eb49a978392174801f2a6d28c7e328ac79499e10da8a55f1b9
-#
-# Upstream CLI note (catppuccin/kde v0.4.0 install.sh):
-#   [-q|--quiet] [-c|--local-cursor <path>] [-n|--no-cursor]
-#   <Flavour 1-4> <Accent 1-14> <WindowDec 1/2> <Debug|auto>
-#     Flavour  1 = Mocha (of: mocha macchiato frappe latte)
-#     Accent   5 = Red
-#     WindowDec 2 = Classic (1 = Modern/aurorae, which the project's own
-#                    install.sh warns has extra button-placement rules)
-#     Debug    auto = auto-answer the remaining confirmation prompt, so the
-#                    call is non-interactive under `-q`.
 # =======================================================
 set -uo pipefail
 
@@ -54,11 +24,6 @@ source "$SCRIPT_DIR/lib/common.sh"
 
 require_not_root
 
-# Upstream pins. Commit SHA, never a branch: branches float, commits don't.
-CATPUCCIN_KDE_REF="${CATPUCCIN_KDE_REF:-6606b5179cfc1e9ba5c3b6b70e15c468e2dddca2}"
-CATPUCCIN_KDE_SHA256="${CATPUCCIN_KDE_SHA256:-79ff6736afef26eb49a978392174801f2a6d28c7e328ac79499e10da8a55f1b9}"
-CATPUCCIN_KDE_URL="https://codeload.github.com/catppuccin/kde/tar.gz/${CATPUCCIN_KDE_REF}"
-
 # Icon theme id. Case-sensitive: this must match the installed directory name
 # AND the index.theme Name= field exactly ("Papirus-Dark", not "papirus-dark").
 ICON_THEME="${ICON_THEME:-Papirus-Dark}"
@@ -66,22 +31,19 @@ ICON_THEME="${ICON_THEME:-Papirus-Dark}"
 log_head "Plasma Theme"
 
 if [ -z "$KWRITECONFIG" ]; then
-    log_warn "Neither kwriteconfig6 nor kwriteconfig5 found — falling back to file writes only."
+    log_warn "Neither kwriteconfig6 nor kwriteconfig5 found -- falling back to file writes only."
     log_warn "Default settings (Konsole profile, accent, icon theme) won't persist across logout."
     log_warn "On a real Plasma install this step should not be running; it works anyway."
 fi
 
-WORK_DIR=$(mktemp -d)
-trap 'rm -rf "$WORK_DIR"' EXIT
-
 # ---------------------------------------------------------------------------
-# 1. Palette engine — Darkmatter is the default; every palette under
+# 1. Palette engine -- Graphite Amber is the default; every palette under
 #    themes/ is selectable. This is the part that needs no network and no
 #    upstream theme: templates in themes/_base/tpl/ are expanded with the
 #    palette's colors into a .colors scheme, a Global Theme package
 #    (metadata.json + colors symlink), and a Konsole scheme + profile.
 # ---------------------------------------------------------------------------
-DEFAULT_PALETTE="darkmatter"
+DEFAULT_PALETTE="graphite-amber"
 PALETTE_CHOICE=""
 
 if [ -f "$SCRIPT_DIR/lib/theme.sh" ]; then
@@ -91,14 +53,14 @@ if [ -f "$SCRIPT_DIR/lib/theme.sh" ]; then
     AVAILABLE=$(list_palettes | cut -d'|' -f1)
     log_info "Palettes available: $(list_palettes | cut -d'|' -f3 | tr '\n' ', ' | sed 's/, $//')"
 
-    if ask "Apply the Darkmatter palette (near-black, red accent)?"; then
+    if ask "Apply the Graphite Amber palette (graphite surfaces, amber accent)?"; then
         PALETTE_CHOICE="$DEFAULT_PALETTE"
     else
         log_info "Pick another palette id, or press Enter to skip theming for now."
         read -rp "   Palette id (blank = skip): " PALETTE_CHOICE
     fi
 else
-    log_err "lib/theme.sh not found — cannot render palettes."
+    log_err "lib/theme.sh not found -- cannot render palettes."
     PALETTE_CHOICE=""
 fi
 
@@ -118,71 +80,18 @@ if [ -n "$PALETTE_CHOICE" ]; then
             ;;
     esac
 else
-    log_warn "Skipped the palette engine — no color scheme applied."
+    log_warn "Skipped the palette engine -- no color scheme applied."
 fi
 
 # ---------------------------------------------------------------------------
-# 2. Catppuccin Global Theme (optional) — application style, window
-#    decoration, splash screen and cursor from upstream. Distinct from the
-#    palette engine above: this is a full theme with its own widgets and
-#    QML splash, not just colors.
-# ---------------------------------------------------------------------------
-CATPPUCCIN_OK=0
-if ask "Also install the upstream Catppuccin Global Theme (Mocha, Red, Classic)?"; then
-    install_pkgs "fetch/extract tooling" curl tar
-
-    TARBALL="$WORK_DIR/catppuccin-kde.tar.gz"
-    log_info "Fetching pinned catppuccin/kde @ ${CATPUCCIN_KDE_REF:0:12}..."
-    if curl -fsSL -o "$TARBALL" "$CATPUCCIN_KDE_URL"; then
-        if sha256_verify "$TARBALL" "$CATPUCCIN_KDE_SHA256"; then
-            if tar xzf "$TARBALL" -C "$WORK_DIR"; then
-                SRC="$(find "$WORK_DIR" -mindepth 1 -maxdepth 1 -type d -name 'kde-*' | head -1)"
-                if [ -n "$SRC" ] && [ -f "$SRC/install.sh" ]; then
-                    chmod +x "$SRC/install.sh"
-                    if ( cd "$SRC" && run_as_user ./install.sh -q 1 5 2 auto ) >"$WORK_DIR/catppuccin.log" 2>&1; then
-                        log_ok "Catppuccin Global Theme installed (Mocha, Red, Classic)."
-                        CATPPUCCIN_OK=1
-                    else
-                        log_err "Upstream install.sh failed. Log: $WORK_DIR/catppuccin.log"
-                        log_warn "The theme files may still have landed — check System Settings > Global Themes"
-                        log_warn "for 'Catppuccin Mocha Red' either way."
-                    fi
-                else
-                    log_err "Upstream tarball has no install.sh — unexpected layout, skipping."
-                fi
-            else
-                log_err "Failed to extract the Catppuccin tarball."
-            fi
-        fi
-    else
-        log_err "Download failed — check your network/DNS. URL: $CATPUCCIN_KDE_URL"
-    fi
-else
-    log_warn "Skipped the Catppuccin Global Theme — the generated palette theme above stays active instead."
-fi
-
-# Re-assert the look-and-feel package so the Catppuccin theme is actually
-# selected — install.sh can succeed while the active LNF is still the old one.
-if [ "$CATPPUCCIN_OK" -eq 1 ] && command_exists plasma-apply-lookandfeel; then
-    LNF_ID=$(run_as_user plasma-apply-lookandfeel --list 2>/dev/null \
-        | grep -i "catppuccin.*mocha.*red\|catppuccin-mocha-red" | head -1 | awk '{print $1}')
-    if [ -n "$LNF_ID" ]; then
-        run_as_user plasma-apply-lookandfeel --apply "$LNF_ID" >/dev/null 2>&1 \
-            && log_ok "Re-asserted the look-and-feel package ($LNF_ID) to be sure it's active."
-    else
-        log_warn "Couldn't match a Catppuccin Mocha Red LNF id — set it in System Settings > Global Themes."
-    fi
-fi
-
-# ---------------------------------------------------------------------------
-# 3. Icons — Papirus-Dark (Debian's papirus-icon-theme). The de-facto
+# 2. Icons -- Papirus-Dark (Debian's papirus-icon-theme). The de-facto
 #    icon theme for KDE: every Plasma app ships a Papirus icon, symlink
 #    aliasing resolves properly under Plasma, and -Dark fits this look.
 #
 #    The id is CASE-SENSITIVE and must match the directory name and the
 #    index.theme Name= exactly: "Papirus-Dark". Writing the all-lowercase
 #    "papirus-dark" (as this step used to) names a theme that does not
-#    exist, so Plasma silently falls back to whatever it liked before —
+#    exist, so Plasma silently falls back to whatever it liked before --
 #    which is how this box ended up on the XFCE-era Zafiro-icons-Dark.
 # ---------------------------------------------------------------------------
 ICONS_OK=0
@@ -206,7 +115,7 @@ if [ "$ICONS_OK" -eq 1 ] && [ -n "$KWRITECONFIG" ]; then
     done
 
     if [ -z "$ICON_THEME_DIR" ]; then
-        log_err "Icon theme '$ICON_THEME' is not installed (no index.theme) — not writing it."
+        log_err "Icon theme '$ICON_THEME' is not installed (no index.theme) -- not writing it."
         log_err "Refusing to write a theme id that can't resolve; Plasma would silently ignore it."
     else
         kwrite_user --file kdeglobals --group Icons --key Theme "$ICON_THEME"
@@ -217,16 +126,16 @@ if [ "$ICONS_OK" -eq 1 ] && [ -n "$KWRITECONFIG" ]; then
 fi
 
 # ---------------------------------------------------------------------------
-# 4. Wallpaper — generated locally (no download), a gradient in the
+# 3. Wallpaper -- generated locally (no download), a gradient in the
 #    current palette's own background/mantle colors with an accent glow.
 #    Skips cleanly if ImageMagick can't be installed rather than failing
 #    the whole step over something purely cosmetic.
 # ---------------------------------------------------------------------------
 HOME_DIR="$(getent passwd "$ACTUAL_USER" 2>/dev/null | cut -d: -f6)"
 [ -n "$HOME_DIR" ] || HOME_DIR="$HOME"
-BG_HEX="#${C_BG:-121113}"
-MANTLE_HEX="#${C_MANTLE:-171618}"
-ACCENT_HEX="#${C_ACCENT:-e75353}"
+BG_HEX="#${C_BG:-16181d}"
+MANTLE_HEX="#${C_MANTLE:-1c1f24}"
+ACCENT_HEX="#${C_ACCENT:-e8a33d}"
 WALLPAPER_PATH="$HOME_DIR/.local/share/backgrounds/devuan-kde-${PALETTE_CHOICE:-plain}.png"
 
 if [ "$PALETTE_APPLIED" -eq 1 ] && ask "Generate a wallpaper in this palette (local, no download)?"; then
@@ -240,11 +149,11 @@ if [ "$PALETTE_APPLIED" -eq 1 ] && ask "Generate a wallpaper in this palette (lo
             -compose over -composite "$WALLPAPER_PATH"; then
             log_ok "Wallpaper generated at $WALLPAPER_PATH"
         else
-            log_warn "ImageMagick composite failed — skipping wallpaper (cosmetic only)."
+            log_warn "ImageMagick composite failed -- skipping wallpaper (cosmetic only)."
             WALLPAPER_PATH=""
         fi
     else
-        log_warn "ImageMagick unavailable — skipping wallpaper generation."
+        log_warn "ImageMagick unavailable -- skipping wallpaper generation."
         WALLPAPER_PATH=""
     fi
 else
@@ -272,7 +181,7 @@ if declare -f install_wallpaper_package >/dev/null 2>&1 \
     fi
     [ -n "${WP_SRC:-}" ] || WP_SRC="${DEVMKDE_WALLPAPER_SRC:-}"
     if [ -z "$WP_SRC" ]; then
-        log_info "No source directory given — skipping wallpaper package."
+        log_info "No source directory given -- skipping wallpaper package."
     else
         # Expand a leading ~ so the answer behaves the way it reads.
         case "$WP_SRC" in
@@ -296,7 +205,7 @@ if [ -n "$WALLPAPER_PATH" ] && [ -f "$WALLPAPER_PATH" ] && ask "Apply this wallp
     if command_exists plasma-apply-wallpaperimage; then
         run_as_user plasma-apply-wallpaperimage "$WALLPAPER_PATH" >/dev/null 2>&1 \
             && log_ok "Wallpaper applied to all screens." \
-            || log_warn "Could not apply it via plasma-apply-wallpaperimage — set it in System Settings > Wallpaper."
+            || log_warn "Could not apply it via plasma-apply-wallpaperimage -- set it in System Settings > Wallpaper."
     elif command_exists qdbus && pgrep -x plasmashell >/dev/null 2>&1; then
         run_as_user qdbus org.kde.plasmashell /PlasmaShell org.kde.PlasmaShell.evaluateScript "{
             var desktops = desktops();
@@ -306,9 +215,9 @@ if [ -n "$WALLPAPER_PATH" ] && [ -f "$WALLPAPER_PATH" ] && ask "Apply this wallp
                 desktops[i].writeConfig('Image', 'file://$WALLPAPER_PATH');
             }
         }" >/dev/null 2>&1 && log_ok "Wallpaper applied to all desktops via plasmashell." \
-            || log_warn "Could not apply the wallpaper — set it manually in System Settings > Wallpaper."
+            || log_warn "Could not apply the wallpaper -- set it manually in System Settings > Wallpaper."
     else
-        log_warn "No session / wallpaper tooling available — apply $WALLPAPER_PATH manually later."
+        log_warn "No session / wallpaper tooling available -- apply $WALLPAPER_PATH manually later."
     fi
 fi
 

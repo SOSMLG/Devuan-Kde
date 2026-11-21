@@ -1,16 +1,16 @@
 # Devuan KDE
 
-![Devuan 6](https://img.shields.io/badge/Devuan-6-9B183E?logo=devuan&logoColor=white)
-![Debian 13](https://img.shields.io/badge/Debian-13-A81D33?logo=debian&logoColor=white)
-![KDE Plasma 6](https://img.shields.io/badge/Plasma-6-3B8EE9?logo=kde&logoColor=white)
-![License: GPL-2.0](https://img.shields.io/badge/License-GPL--2.0-green.svg)
+![Devuan 6](https://img.shields.io/badge/Devuan-6-202329?logo=devuan&logoColor=E8A33D)
+![Debian 13](https://img.shields.io/badge/Debian-13-202329?logo=debian&logoColor=E8A33D)
+![KDE Plasma 6](https://img.shields.io/badge/Plasma-6-202329?logo=kde&logoColor=E8A33D)
+![License: GPL-2.0](https://img.shields.io/badge/License-GPL--2.0-8FB57A.svg)
 
 Post-install polish for a Devuan (or Debian) box where **KDE Plasma is already
 installed** by the distro's own installer. This toolkit does not install KDE. It
 debloats the default Plasma task toward a minimal-but-functional desktop, then
 fills in the "why doesn't this just work" gaps: codecs, WiFi/Bluetooth
 firmware, a software center, printing, a firewall panel, Timeshift snapshots,
-and a complete Darkmatter visual identity — Global Theme, icons, Konsole
+and a complete Graphite Amber visual identity — Global Theme, icons, Konsole
 profile, Plymouth splash, GRUB menu and SDDM login screen.
 
 Written against **Plasma 6.3 / KDE Frameworks 6.13** on **Devuan 6 (Excalibur)**
@@ -91,7 +91,7 @@ filters read. Defaults are what `--yes` answers.
 | 11 | `11-systemUpdate.sh` | Y | Refresh package lists + full-upgrade before anything else (run first on a fresh install) |
 | 12 | `12-kdeDebloat.sh` | Y | Debloat KDE Plasma (games/education/PIM/extras) toward a minimal-but-functional install |
 | 13 | `13-usefulApps.sh` | Y | Install VLC, TLP (+ ThinkPad battery thresholds), and a few small KDE-completing utilities |
-| 14 | `14-plasmaTheme.sh` | Y | The look: Darkmatter palette + Global Theme, accent, Konsole profile, icons, wallpaper |
+| 14 | `14-plasmaTheme.sh` | Y | The look: Graphite Amber palette + Global Theme, accent, Konsole profile, icons, wallpaper |
 | 15 | `15-bootThemeSetup.sh` | Y | Carry the theme to Plymouth (boot splash), GRUB, and the SDDM login screen |
 | 16 | `16-touchpadTrackpointFix.sh` | Y | Apply touchpad/trackpoint polling + libinput fixes |
 | 17 | `17-hardwareSupport.sh` | Y | Install WiFi/Bluetooth firmware, CPU microcode, and fwupd firmware updates |
@@ -141,14 +141,13 @@ filters read. Defaults are what `--yes` answers.
 
 ## Fetched at install time
 
-Nothing third-party is vendored. Three things are downloaded and verified when
-the step that needs them runs:
+Nothing third-party is vendored. Optional pieces are downloaded only when the
+step that needs them runs; the Plasma theme itself is always generated locally.
 
 | What | From | Pin |
 | --- | --- | --- |
 | ButterBash | `codeberg.org/justaguylinux/butterbash` | commit `ae194a92923c922e1baaede280940a5a256da99f`, tarball SHA256 `0989771e…96c9` |
-| Catppuccin KDE | GitHub release | tag `v0.4.0` (commit `6606b5179cfc…ddca2`), tarball SHA256 verified |
-| Darkmatter GTK/xfwm4 theme + Zafiro icons | upstream | version pinned in `14-plasmaTheme.sh` |
+| Moe Dark Global Theme | pinned mirror via `scripts/lib/moe.sh` | SHA256 verified at download when the `moe-dark` palette is applied |
 
 `22-terminalButterbash.sh` fetches a **pinned commit**, not a branch, so two
 runs of the step cannot silently install different code, and it refuses to
@@ -175,13 +174,14 @@ committed and the art always matches the installed fastfetch version.
 Every palette is a `palette_<id>()` function in `themes/palettes.sh` — one file
 rather than one directory per palette — rendered through the templates in
 `themes/_base/tpl/`. Adding a palette means adding an id to `PALETTE_IDS` and one
-function; nothing else needs touching. The default **Darkmatter** palette is a
-near-black base (`#121113`) with a red accent (`#e75353`);
-`darkmatter-orange` keeps the upstream orange (`#e78a53`) for comparison.
+function; nothing else needs touching. The default **Graphite Amber** palette
+uses a graphite canvas (`#16181D`) with an amber accent (`#E8A33D`);
+`graphite-amber-cool` and `graphite-amber-light` keep the same accent on
+cooler and lifted surfaces. The old `darkmatter` and `darkmatter-orange` palettes remain selectable as legacy options.
 
 ```bash
 bash scripts/46-applyThemes.sh            # interactive picker
-bash scripts/46-applyThemes.sh darkmatter # apply one directly
+bash scripts/46-applyThemes.sh graphite-amber # apply one directly
 bash scripts/46-applyThemes.sh otto       # OttoRed
 ```
 
@@ -222,9 +222,11 @@ output as its "installed Otto" — the generated wrapper declares the name
 `Otto Red`, and the Kvantum copy's id ends in the palette name, so each run
 compounded the last.
 
-Palettes are one file each and the renderer is shared: **11 ship in-tree**
-(`darkmatter`, `darkmatter-orange`, `mocha-red`, `mocha-blue`, `frappe`,
-`nord`, `dracula`, `tokyo-night`, `gruvbox`, `solarized`, `otto`).
+Palettes are one file each and the renderer is shared: **12 ship in-tree**
+(`graphite-amber` (default), `graphite-amber-cool`, `graphite-amber-light`;
+legacy/optional: `darkmatter`, `darkmatter-orange`, `moe-dark`, `nord`, `dracula`,
+`tokyo-night`, `gruvbox`,
+`solarized`, `otto`).
 
 `14-plasmaTheme.sh` writes a real Plasma 6 Global Theme — `metadata.json`
 plus `contents/defaults`, which is how Plasma 6 actually applies a theme: it
@@ -235,12 +237,9 @@ never load-bearing. There is no `layout.js` and no `contents/layouts/`; a
 `contents/colors` entry *is* written as a real file copy (never a symlink, which
 Plasma 6 kpackages do not support) purely so older tooling that still looks for
 it keeps working. Deleting it changes nothing Plasma reads. It also writes the Konsole profile, icon theme, accent and a
-generated wallpaper. The GTK /
-xfwm4 Darkmatter theme and the Zafiro icons are **fetched at install time**; no
-binary assets are committed to this repository.
-
-Catppuccin KDE is pinned to tag `v0.4.0`
-(commit `6606b5179cfc1e9ba5c3b6b70e15c468e2dddca2`, tarball SHA256 verified).
+generated wallpaper. The GTK side uses the stock `Adwaita-dark` base, and the
+boot/login assets are generated locally by `15-bootThemeSetup.sh`; no theme
+tarball or binary asset is committed to this repository.
 
 ## Environment variables
 
@@ -307,4 +306,4 @@ license files.
 
 ## Repository standard
 
-This repo follows the SOSMLG standard: [contributing](CONTRIBUTING.md), [security](SECURITY.md), [changelog](CHANGELOG.md). Local workflow: [English guide](https://github.com/SOSMLG/.github/blob/main/docs/GIT_GUIDE.md) / [Arabic guide](https://github.com/SOSMLG/.github/blob/main/docs/GIT_GUIDE.ar.md).
+This repo follows the SOSMLG standard: [contributing](CONTRIBUTING.md), [security](SECURITY.md), [changelog](CHANGELOG.md). Local workflow: [English guide](https://github.com/SOSMLG/.github/blob/main/docs/GIT_GUIDE.md) / [Arabic guide](https://github.com/SOSMLG/.github/blob/main/docs/GIT_GUIDE.ar.md). Visual standard: [theme](https://github.com/SOSMLG/.github/blob/main/docs/THEME.md) / [الطابع البصري](https://github.com/SOSMLG/.github/blob/main/docs/THEME.ar.md).

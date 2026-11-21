@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =======================================================
-# theme.sh — the palette theme engine (sourced by scripts)
+# theme.sh -- the palette theme engine (sourced by scripts)
 # -------------------------------------------------------
 # Turns the plain hex palettes in themes/palettes.sh into a
 # coherent KDE Plasma color story in one call:
@@ -22,7 +22,7 @@
 #              sanitises it: its contents/defaults names six components it does
 #              not ship, and its contents/layouts would replace the panel.
 #              Moe ships pinned tarballs on a mirror, so it is fetched rather
-#              than discovered — hence fetch+verify, not recolour.
+#              than discovered -- hence fetch+verify, not recolour.
 #
 # Both are sourced (not required) so a palette that never touches them carries
 # none of it, and a syntax error in one cannot stop an unrelated palette from
@@ -31,7 +31,7 @@
 # Every palette_<id>() in themes/palettes.sh defines the same set of
 # variables (see palette_darkmatter or any sibling); the templates in
 # themes/_base/tpl/ reference them as @VAR@ (hex) or @RG_VAR@ (decimal
-# "R,G,B") and are expanded with sed — no runtime per-color hardcoding,
+# "R,G,B") and are expanded with sed -- no runtime per-color hardcoding,
 # so adding a palette is adding one id in PALETTE_IDS plus one function,
 # nothing else.
 #
@@ -65,13 +65,13 @@ THEME_VERSION="1.0"
 
 # Where the active palette is recorded.
 #
-# theme_state_dir — a FUNCTION, not a variable computed at source time. A
+# theme_state_dir -- a FUNCTION, not a variable computed at source time. A
 # top-level STATE_DIR binds ${XDG_STATE_HOME:-$HOME} the moment this file is
-# sourced, which is before a test can export XDG_STATE_HOME — so a sandboxed
+# sourced, which is before a test can export XDG_STATE_HOME -- so a sandboxed
 # run writes "current-theme" into the developer's REAL ~/.local/state and
 # silently renames their desktop. It did exactly that while this was being
-# written: a sandboxed apply_palette otto overwrote a live Darkmatter marker
-# with "otto", and the desktop still looked Darkmatter because only the marker
+# written: a sandboxed apply_palette otto overwrote a live Graphite Amber marker
+# with "otto", and the desktop still looked Graphite Amber because only the marker
 # had moved. Resolving it at call time makes the redirect work.
 theme_state_dir() {
     printf '%s/devuan-kde-setup' "${XDG_STATE_HOME:-$HOME/.local/state}"
@@ -89,17 +89,17 @@ _PALETTE_VARS=(PALETTE_ID PALETTE_NAME PALETTE_SHORT PALETTE_DESC
 
 # Cleared on every load like _PALETTE_VARS, but NOT required to be non-empty:
 # an empty value means "this palette does not claim that component". A cursor id
-# must stay optional — see resolve_cursor_theme for why an unset one must not be
+# must stay optional -- see resolve_cursor_theme for why an unset one must not be
 # papered over with a default.
 _PALETTE_OPTIONAL_VARS=(CURSOR_THEME)
 
-# hex2rgb <hex> — 6-hex digit color → decimal "R,G,B". Returns the string
+# hex2rgb <hex> -- 6-hex digit color -> decimal "R,G,B". Returns the string
 # on stdout; empty and status 1 for bad input.
 #
 # The explicit ^[0-9a-fA-F]{6}$ check is load-bearing, not paranoia: bash's
 # printf evaluates an invalid hex literal as 0 and carries on, so
 # `printf '%d' 0xno` yields 0, not an error. Without the guard a typo like
-# C_BG=nothex renders as the decimal triple "0,0,14" — a plausible-looking
+# C_BG=nothex renders as the decimal triple "0,0,14" -- a plausible-looking
 # near-black instead of a loud failure, which is exactly the sort of thing
 # that gets "fixed" by staring at the .colors file.
 hex2rgb() {
@@ -179,7 +179,7 @@ load_palette() {
     # Clear every palette variable BEFORE sourcing. Sourcing merges into the
     # current environment rather than replacing it, so without this a second
     # load silently inherits the first palette's values for anything the new
-    # palette omits — and load_palette's own completeness check then passes on
+    # palette omits -- and load_palette's own completeness check then passes on
     # stale data, which is how a palette ships a wrong color nobody notices.
     local v
     for v in "${_PALETTE_VARS[@]}" "${_PALETTE_OPTIONAL_VARS[@]}"; do
@@ -223,7 +223,7 @@ load_palette() {
     return 0
 }
 
-# render_template <tpl-file> <out-file> — expands every @VAR@ placeholder
+# render_template <tpl-file> <out-file> -- expands every @VAR@ placeholder
 # for the palette currently loaded in this shell.
 render_template() {
     local tpl="$1" out="$2"
@@ -241,9 +241,9 @@ render_template() {
     sed "${args[@]}" "$tpl" > "$out"
 }
 
-# apply_palette <name> — apply one palette end-to-end (Konsole scheme +
+# apply_palette <name> -- apply one palette end-to-end (Konsole scheme +
 # profile, Plasma color scheme, kdeglobals accent, defaults + reload).
-# persist_palette_keys <home_dir> — put the palette's persistent keys in
+# persist_palette_keys <home_dir> -- put the palette's persistent keys in
 # kdeglobals/konsolerc, VERIFIED, and report which ones refused to stick.
 #
 # WHY NOT kwrite_user: kwriteconfig6 exits 0 and writes nothing for some keys.
@@ -253,7 +253,7 @@ render_template() {
 # "Default Konsole profile + Plasma color scheme + accent persisted" and left
 # kdeglobals with AccentColor and ColorSchemeHash but NO ColorScheme at all. On
 # the next login Plasma picks its own default scheme, the accent and every
-# generated colour silently revert, and nothing logged an error — the exit code
+# generated colour silently revert, and nothing logged an error -- the exit code
 # was 0 the whole time.
 #
 # So these three keys go through ini_set_key (edit + read back) rather than
@@ -274,7 +274,7 @@ persist_palette_keys() {
     # (accentColor) are accepted as an unknown key and ignored, which is the
     # single most common "why isn't my theme applying?" bug.
     ini_set_key "$kg" "General" "ColorScheme" "$PALETTE_SHORT" \
-        || { log_warn "kdeglobals ColorScheme did not stick — next login reverts to Plasma's default scheme"; rc=1; }
+        || { log_warn "kdeglobals ColorScheme did not stick -- next login reverts to Plasma's default scheme"; rc=1; }
     ini_set_key "$kg" "General" "AccentColor" "#${C_ACCENT}" \
         || { log_warn "kdeglobals AccentColor did not stick"; rc=1; }
     # AccentColorFromWallpaper is deliberately NOT written: Plasma 5 key, gone in
@@ -332,14 +332,14 @@ apply_palette() {
             log_ok "Default Konsole profile + Plasma color scheme + accent (#${C_ACCENT}) persisted."
         fi
     else
-        log_warn "kwriteconfig not found — konsolerc/kdeglobals untouched; your next Konsole run still sees the new .colorscheme file."
+        log_warn "kwriteconfig not found -- konsolerc/kdeglobals untouched; your next Konsole run still sees the new .colorscheme file."
     fi
 
     # ---- 4. Live reload (best effort) ------------------------------------
     if command_exists plasma-apply-colorscheme; then
         run_as_user plasma-apply-colorscheme "$PALETTE_SHORT" >/dev/null 2>&1 \
             && log_ok "Color scheme applied live (plasma-apply-colorscheme)." \
-            || log_warn "plasma-apply-colorscheme did not apply cleanly — next login picks the scheme up."
+            || log_warn "plasma-apply-colorscheme did not apply cleanly -- next login picks the scheme up."
     fi
     run_as_user qdbus6 org.kde.KWin /KWin reconfigure >/dev/null 2>&1 \
         || run_as_user qdbus org.kde.KWin /KWin reconfigure >/dev/null 2>&1
@@ -347,24 +347,23 @@ apply_palette() {
     # ---- 5. Global Theme (look-and-feel wrapper) -------------------------
     # Best effort: a palette that applies but has no Global Theme is still a
     # working desktop, so a failure here must not abort the step.
-    apply_global_theme "$home_dir" || log_warn "Global Theme not built — the color scheme is applied regardless."
+    apply_global_theme "$home_dir" || log_warn "Global Theme not built -- the color scheme is applied regardless."
 
-    # ---- 5b. Catppuccin back on top --------------------------------------
-    # Generated last so the shipped look survives every later palette swap.
-    # Always succeeds; a no-op when Catppuccin isn't installed.
-reassert_catppuccin_lnf
-
-    # ---- 5b. GTK3/GTK4 — before the cursor block, which is deliberately last
+    # ---- 5b. Generated Global Theme stays authoritative -----------------
+    # No upstream theme is reasserted here: apply_global_theme above builds
+    # the palette's own Plasma look, so later palette swaps cannot drift the
+    # desktop onto an unrelated third-party theme.
+    # ---- 5b. GTK3/GTK4 -- before the cursor block, which is deliberately last
     apply_gtk_theme "$home_dir" || true
 
-    # ---- 5c. Cursor theme — LAST, and verified -----------------------------
+    # ---- 5c. Cursor theme -- LAST, and verified -----------------------------
     # The cursor is applied live as well as through the Global Theme, so swapping
     # a palette fixes the cursor even when the look-and-feel package is not
     # rebuilt (or on a headless box with no Plasma to reload).
     #
     # It has to run after every Plasma tool above. Each of them
     # (plasma-apply-colorscheme, plasma-apply-lookandfeel) syncs kcminputrc from
-    # its own in-memory copy, and that copy never contains this key — so a cursor
+    # its own in-memory copy, and that copy never contains this key -- so a cursor
     # written before them is silently deleted again a second later. Writing it
     # first "worked": the log said OK and kcminputrc had no cursorTheme in it.
     local cursor_theme
@@ -372,10 +371,10 @@ reassert_catppuccin_lnf
         if write_cursor_theme "$home_dir" "$cursor_theme"; then
             log_ok "Cursor theme applied: $cursor_theme"
         else
-            log_warn "Could not set cursorTheme=$cursor_theme in kcminputrc — cursor unchanged."
+            log_warn "Could not set cursorTheme=$cursor_theme in kcminputrc -- cursor unchanged."
         fi
     else
-        log_warn "Cursor theme '${CURSOR_THEME:-<unset>}' is not installed — cursor left alone (see resolve_cursor_theme)."
+        log_warn "Cursor theme '${CURSOR_THEME:-<unset>}' is not installed -- cursor left alone (see resolve_cursor_theme)."
     fi
     # Ask KWin to pick the new cursor up without waiting for a re-login. Best
     # effort: it may still be deferred to next login, which is not an error.
@@ -393,7 +392,7 @@ reassert_catppuccin_lnf
     # it skipped and returns 0 even with nothing installed, because a palette
     # apply that works without Otto is not a failure.
     if [ "${PALETTE_ID:-}" = "otto" ] && declare -F otto_apply_theme >/dev/null 2>&1; then
-        otto_apply_theme "$home_dir" || log_warn "Otto integration incomplete — the palette itself is fully applied."
+        otto_apply_theme "$home_dir" || log_warn "Otto integration incomplete -- the palette itself is fully applied."
     fi
 
     # The moe-dark palette installs the real Moe v2.6 Global Theme from a pinned
@@ -402,13 +401,13 @@ reassert_catppuccin_lnf
     # wrapper. Same best-effort contract as Otto: a failed download leaves a
     # fully applied palette behind.
     if [ "${PALETTE_ID:-}" = "moe-dark" ] && declare -F moe_apply_theme >/dev/null 2>&1; then
-        moe_apply_theme "$home_dir" || log_warn "Moe integration incomplete — the palette itself is fully applied."
+        moe_apply_theme "$home_dir" || log_warn "Moe integration incomplete -- the palette itself is fully applied."
     fi
 
     # ---- 6b. Re-assert the palette keys ----------------------------------
     # LAST, and deliberately after step 6 rather than next to step 3. Every
     # look-and-feel application rewrites kdeglobals from the package's
-    # contents/defaults, so a ColorScheme written earlier does not survive it —
+    # contents/defaults, so a ColorScheme written earlier does not survive it --
     # and step 6 applies one more Global Theme of its own (Otto, Moe).
     #
     # Observed live: `46-applyThemes.sh moe-dark` logged "Plasma color scheme
@@ -422,7 +421,7 @@ reassert_catppuccin_lnf
     # ini_set_key replaces in place, so calling it again is idempotent and does
     # not append a duplicate.
     persist_palette_keys "$home_dir" \
-        || log_warn "palette keys still did not stick after the last Global Theme — check kdeglobals by hand."
+        || log_warn "palette keys still did not stick after the last Global Theme -- check kdeglobals by hand."
 
     # ---- 7. State marker -------------------------------------------------
     STATE_DIR="$(theme_state_dir)"
@@ -444,7 +443,7 @@ reassert_catppuccin_lnf
 # folder of images in ~/.local/share/backgrounds is invisible there, and the
 # only way to reach it is by typing a path. (14-plasmaTheme.sh can already
 # generate a gradient wallpaper from the palette, but a generated gradient is
-# not a choice — this is for image sets you already like.)
+# not a choice -- this is for image sets you already like.)
 #
 # NO IMAGE IS COPIED INTO THE REPO. The source directory is supplied by the
 # user at run time and the images are copied into the user's own ~/.config.
@@ -482,7 +481,7 @@ install_wallpaper_package() {
         esac
     done
     if [ "${#imgs[@]}" -eq 0 ]; then
-        log_warn "No .png/.jpg/.jpeg images in $src_dir — nothing to install." >&2
+        log_warn "No .png/.jpg/.jpeg images in $src_dir -- nothing to install." >&2
         return 1
     fi
 
@@ -510,7 +509,7 @@ install_wallpaper_package() {
     return 0
 }
 
-# apply_wallpaper_image <home_dir> <image_path> — set one image on every
+# apply_wallpaper_image <home_dir> <image_path> -- set one image on every
 # desktop, via the supported plasmashell DBus API rather than editing
 # plasma-org.kde.plasma.desktop-appletsrc by hand.
 #
@@ -548,11 +547,11 @@ d.length;"
         run_as_user plasma-apply-wallpaperimage "$img" >/dev/null 2>&1 \
             && { log_ok "Wallpaper applied via plasma-apply-wallpaperimage."; return 0; }
     fi
-    log_warn "Could not set the wallpaper live — pick it in System Settings > Desktop > Wallpaper."
+    log_warn "Could not set the wallpaper live -- pick it in System Settings > Desktop > Wallpaper."
     return 1
 }
 
-# kde_value <group> <key> — read one key out of ~/.config/kdeglobals.
+# kde_value <group> <key> -- read one key out of ~/.config/kdeglobals.
 # Used so the GTK side is derived from the KDE side rather than hardcoded,
 # which is what keeps the two toolkits from drifting apart.
 kde_value() {
@@ -566,7 +565,7 @@ kde_value() {
     ' "$home_dir/.config/kdeglobals" 2>/dev/null
 }
 
-# gtk_font_string <kde_font> — turn kdeglobals' Pango-ish
+# gtk_font_string <kde_font> -- turn kdeglobals' Pango-ish
 # "Family,Size,-1,Weight,..." into the "Family Size" form gtk-font-name takes.
 # Only the first two fields are used; the rest (hinting, weight, embedding) have
 # no GTK equivalent and are dropped rather than guessed at.
@@ -578,11 +577,11 @@ gtk_font_string() {
     if [ -n "$size" ]; then printf '%s %s' "$family" "$size"; else printf '%s' "$family"; fi
 }
 
-# apply_gtk_theme <home_dir> — make GTK3/GTK4 apps follow the KDE desktop.
+# apply_gtk_theme <home_dir> -- make GTK3/GTK4 apps follow the KDE desktop.
 #
 # WHY: this box keeps XFCE, so plenty of apps (GtkTerm, xfce4 apps, GTK
 # Electron/Tauri apps) never touch Plasma's theming at all. Without this they
-# render light GTK-default while KDE is Darkmatter — the classic split desktop.
+# render light GTK-default while KDE is Graphite Amber - the classic split desktop.
 #
 # Values are READ FROM kdeglobals (icon theme, font) rather than restated, so
 # there is exactly one place to change them and no way for the two to disagree.
@@ -591,11 +590,11 @@ gtk_font_string() {
 # function's job is to match KDE, not to restyle the user's app preferences.
 apply_gtk_theme() {
     local home_dir="$1"
-    local gtk_theme="${GTK_THEME:-Darkmatter}"
+    local gtk_theme="${GTK_THEME:-Adwaita-dark}"
     local kde_icons kde_font gtk_font cursor_theme rc=0
 
     if [ ! -d "/usr/share/themes/$gtk_theme" ] && [ ! -d "$home_dir/.themes/$gtk_theme" ]; then
-        log_warn "GTK theme '$gtk_theme' is not installed — GTK apps left alone."
+        log_warn "GTK theme '$gtk_theme' is not installed -- GTK apps left alone."
         return 1
     fi
 
@@ -622,18 +621,18 @@ apply_gtk_theme() {
     if [ "$rc" -eq 0 ]; then
         log_ok "GTK3/GTK4 follow KDE: theme=$gtk_theme icons=$kde_icons${gtk_font:+ font=$gtk_font}${cursor_theme:+ cursor=$cursor_theme}"
     else
-        log_warn "Could not fully write GTK settings.ini — GTK apps may not match KDE."
+        log_warn "Could not fully write GTK settings.ini -- GTK apps may not match KDE."
     fi
     return "$rc"
 }
 
-# apply_global_theme <home_dir> — build and register a Plasma 6 Global Theme
+# apply_global_theme <home_dir> -- build and register a Plasma 6 Global Theme
 # (look-and-feel package) for the currently-loaded palette, so the palette shows
 # up in System Settings > Appearance > Global Theme as a single clickable entry
 # instead of a color scheme buried in a dropdown.
 #
 # The layout is Plasma 6's KPackage structure, matching what KDE's own
-# breezedark.desktop and upstream Catppuccin ship:
+# breezedark.desktop and the generated themes ship:
 #
 #   metadata.json          REQUIRED manifest. The top-level
 #                          "KPackageStructure": "Plasma/LookAndFeel" is what
@@ -657,7 +656,7 @@ apply_gtk_theme() {
 # Deliberately omitted: `contents/layouts/` and `contents/widgets/`. Shipping an
 # empty layouts dir would claim a DesktopLayout the theme does not actually
 # provide, and Plasma would apply an empty panel instead of the user's.
-# resolve_cursor_theme — print the cursor theme id this palette declares, but
+# resolve_cursor_theme -- print the cursor theme id this palette declares, but
 # only when that theme actually exists on disk.
 #
 # A palette may set CURSOR_THEME (e.g. "Bibata-Modern-Ice"). Pointing Plasma at a
@@ -687,20 +686,20 @@ apply_global_theme() {
     local colors_file="$home_dir/.local/share/color-schemes/$PALETTE_SHORT.colors"
 
     if [ ! -f "$colors_file" ]; then
-        log_warn "No color scheme at $colors_file — skipping Global Theme."
+        log_warn "No color scheme at $colors_file -- skipping Global Theme."
         return 1
     fi
 
     run_as_user rm -rf "$lnf_dir"
     run_as_user mkdir -p "$lnf_dir/contents"
     # Provenance marker. The wrapper's Name/Description come from the palette,
-    # and for otto they literally contain the word "Otto" — so otto.sh's
+    # and for otto they literally contain the word "Otto" -- so otto.sh's
     # discovery would otherwise recognise this generated wrapper as an
     # installed Otto Global Theme and recolour it as its own source. Marking it
     # makes "is this upstream or ours?" a fact rather than a guess.
     run_as_user touch "$lnf_dir/$DEVMKDE_GENERATED_MARKER" 2>/dev/null || true
 
-    # metadata.json — hand-written so it stays readable and greppable; the
+    # metadata.json -- hand-written so it stays readable and greppable; the
     # template engine only expands hex/RGB, and JSON needs quotes and braces.
     cat > "$lnf_dir/metadata.json" <<EOF
 {
@@ -726,15 +725,15 @@ apply_global_theme() {
 }
 EOF
 
-    # contents/defaults — THIS is how a Plasma 6 LookAndFeel applies. Verified
+    # contents/defaults -- THIS is how a Plasma 6 LookAndFeel applies. Verified
     # against the two themes that demonstrably work on this box:
     # /usr/share/plasma/look-and-feel/org.kde.breezedark.desktop and the
-    # Catppuccin package. Neither has a contents/colors entry; both drive every
+    # generated package. Neither has a contents/colors entry; both drive every
     # visible component through this file. Each `[<config file>][<group>]` header
     # makes Plasma write those keys into that file when the theme is applied.
     #
-    # It previously emitted `[kdeglobals][General]` TWICE — once for
-    # ColorScheme, once for AccentColor — so the two keys landed in duplicate
+    # It previously emitted `[kdeglobals][General]` TWICE -- once for
+    # ColorScheme, once for AccentColor -- so the two keys landed in duplicate
     # blocks whose merge behaviour is not something to rely on, and the block
     # omitted cursorTheme, [plasmarc][Theme] and [org.kde.kdecoration2]
     # entirely. Applying the theme therefore moved two colors and left the
@@ -755,12 +754,12 @@ EOF
         # stock theme does exactly that (org.kde.breezedark.desktop ships
         # [kcminputrc][Mouse] cursorTheme=breeze_cursors). On Plasma 6.3 KConfig
         # declines to store this key, so applying the Global Theme at login
-        # rewrites kcminputrc from a copy that never had it — deleting the cursor
+        # rewrites kcminputrc from a copy that never had it -- deleting the cursor
         # theme that write_cursor_theme had just put there. The result was a
         # cursor that reverted on every single login. apply_palette sets the
         # cursor directly instead, and verifies it; see write_cursor_theme.
         if [ -n "${CURSOR_THEME:-}" ] && ! resolve_cursor_theme "$home_dir" >/dev/null 2>&1; then
-            log_warn "palette wants cursor '$CURSOR_THEME' but it is not installed — leaving the cursor alone. Install it with: apt-get install bibata-cursor-theme"
+            log_warn "palette wants cursor '$CURSOR_THEME' but it is not installed -- leaving the cursor alone. Install it with: apt-get install adwaita-icon-theme"
         fi
 
         printf '\n[plasmarc][Theme]\n'
@@ -769,7 +768,7 @@ EOF
         # Breeze KDecoration2 rather than an Aurorae SVG: it ships with Plasma,
         # so it always matches the Plasma version in use, and it needs no new
         # assets. BorderSize=None keeps the borderless look this desktop already
-        # had via the Catppuccin theme it replaces.
+        # had on the stock desktop.
         printf '\n[kwinrc][org.kde.kdecoration2]\n'
         printf 'library=org.kde.breeze\n'
         printf 'theme=Breeze\n'
@@ -777,7 +776,7 @@ EOF
         printf 'BorderSizeAuto=false\n'
     } > "$lnf_dir/contents/defaults"
 
-    # contents/colors — a real file copy, kept for anyone (or any tool) that
+    # contents/colors -- a real file copy, kept for anyone (or any tool) that
     # expects the file to be present next to the manifest. It is NOT how Plasma 6
     # picks up colors: nothing in Plasma 6 reads a theme's contents/colors, and
     # no shipped theme has one. The symlink convention inherited from Plasma 5
@@ -790,10 +789,10 @@ EOF
         if run_as_user plasma-apply-lookandfeel --apply "$lnf_id" >/dev/null 2>&1; then
             log_ok "Global Theme applied: $PALETTE_NAME"
         else
-            log_warn "plasma-apply-lookandfeel didn't apply cleanly — next login picks it up."
+            log_warn "plasma-apply-lookandfeel didn't apply cleanly -- next login picks it up."
         fi
     else
-        log_warn "plasma-apply-lookandfeel not found — Global Theme written to $lnf_dir but not applied."
+        log_warn "plasma-apply-lookandfeel not found -- Global Theme written to $lnf_dir but not applied."
     fi
 
     if [ -n "$KWRITECONFIG" ]; then
@@ -804,7 +803,7 @@ EOF
     # on this box WITHOUT writing anything: deleting [Theme]
     # LookAndFeelPackage from plasmarc, running the tool, and re-reading shows
     # the key still absent. So the tool call above cannot be trusted to
-    # register the theme, and lookandfeeltoolrc — which the engine writes — is
+    # register the theme, and lookandfeeltoolrc -- which the engine writes -- is
     # the tool's own bookkeeping, not a file Plasma reads.
     #
     # Plasma 6 keeps the active look-and-feel package in
@@ -820,70 +819,8 @@ EOF
     return 0
 }
 
-# reassert_catppuccin_lnf — put the upstream Catppuccin Global Theme back on top
-# after a palette has been applied, if it is installed.
-#
-# WHY THIS IS NEEDED: Catppuccin's contents/defaults sets
-#   [kdeglobals][General] ColorScheme=CatppuccinMochaRed
-# so applying Catppuccin replaces the palette engine's Plasma color scheme. The
-# original design wanted Catppuccin to own the Plasma look (widgets, aurorae
-# window decoration, cursor, splash) while the palette owned Konsole, the
-# wallpaper and the generated .colors file — and the reverse had to hold too, so
-# `46-applyThemes.sh` re-applying a palette could not silently drift the desktop
-# off the shipped look.
-#
-# WHY IT IS NOW PALETTE-AWARE: that unconditional reassert is precisely why the
-# desktop ended up split-brained. The palette marker, Konsole scheme and accent
-# were all Darkmatter while the actual Plasma chrome came from Catppuccin, and no
-# amount of re-applying Darkmatter could fix it — every apply reasserted
-# Catppuccin again. Reasserting is now correct only when a Catppuccin palette is
-# actually the one being applied; for any other palette the generated Global
-# Theme must be allowed to stand, or the two palettes can never converge.
-#
-# DEVMKDE_PREFER_CATPPUCCIN=0 forces the Catppuccin theme off in every case.
-reassert_catppuccin_lnf() {
-    command_exists plasma-apply-lookandfeel || return 0
-    # Documented opt-out. A non-empty test cannot express this: "0" is non-empty,
-    # so `[ -n ... ]` would let DEVMKDE_PREFER_CATPPUCCIN=0 through and reassert
-    # anyway. Compare the value instead.
-    [ "${DEVMKDE_PREFER_CATPPUCCIN:-1}" != "0" ] || return 0
-
-    # Map palette -> the one Global Theme whose colours it actually came from.
-    #
-    # This must be an exact allowlist, not a pattern match on "catppuccin" or
-    # "mocha": Catppuccin ships one Global Theme per flavour, and matching a
-    # family name reasserts whichever flavour happened to be installed under
-    # every Catppuccin-flavoured palette. That is how mocha-blue and frappe
-    # ended up wearing the Mocha RED theme. Add a flavour here only once its
-    # own theme id is installed.
-    local want=""
-    case "${PALETTE_ID:-}" in
-        mocha-red) want="Catppuccin-Mocha-Red" ;;
-    esac
-
-    if [ -z "$want" ]; then
-        log_info "Palette '${PALETTE_ID:-?}' does not come from a Catppuccin Global Theme — leaving its own theme active."
-        return 0
-    fi
-
-    # Exact match on the whole line: --list prints one bare id per line.
-    local lnf_id
-    lnf_id="$(run_as_user plasma-apply-lookandfeel --list 2>/dev/null \
-        | grep -ix "$want" | head -1)"
-
-    if [ -n "$lnf_id" ]; then
-        run_as_user plasma-apply-lookandfeel --apply "$lnf_id" >/dev/null 2>&1 \
-            && log_ok "Catppuccin Global Theme re-applied ($lnf_id) — it owns the Plasma look."
-    else
-        # Not installed is the normal state on a box that skipped Catppuccin, so
-        # this is informational rather than a warning about a broken theme.
-        log_info "Catppuccin Global Theme not installed — the palette's own Global Theme stays active."
-    fi
-    return 0
-}
-
-# apply_palette_by_short <Short> — locate a palette by its PALETTE_SHORT
-# (e.g. "CatppuccinRed") and apply it; used when only the scheme name is known.
+# apply_palette_by_short <Short> -- locate a palette by its PALETTE_SHORT
+# (e.g. "GraphiteAmber") and apply it; used when only the scheme name is known.
 apply_palette_by_short() {
     local short="$1" id
     while IFS= read -r id; do

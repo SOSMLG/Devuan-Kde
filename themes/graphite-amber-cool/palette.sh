@@ -1,0 +1,36 @@
+PALETTE_ID="graphite-amber-cool"
+PALETTE_NAME="Graphite Amber (Cool)"
+PALETTE_SHORT="GraphiteAmberCool"
+PALETTE_DESC="Graphite surfaces with a cooler blue-gray overlay and the amber accent."
+
+C_BG=16181d
+C_MANTLE=1b1e23
+C_CRUST=101216
+C_SURFACE0=202329
+C_SURFACE1=30343b
+C_OVERLAY0=46515c
+C_OVERLAY1=667482
+C_TEXT=d8d3c8
+C_SUBTEXT0=9a9aa2
+C_SUBTEXT1=b5b0a6
+
+C_ACCENT=e8a33d
+C_ACCENT_FG=16181d
+C_ACCENT_DIM=d2992f
+
+C_0=30343b
+C_1=c97064
+C_2=8fb57a
+C_3=e8a33d
+C_4=7e9db5
+C_5=a78bb5
+C_6=79a9a6
+C_7=9a9aa2
+C_8=4a4e57
+C_9=c97064
+C_10=8fb57a
+C_11=e8a33d
+C_12=7e9db5
+C_13=a78bb5
+C_14=79a9a6
+C_15=d8d3c8

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =======================================================
-# Verify Setup — end-state audit
+# Verify Setup -- end-state audit
 # -------------------------------------------------------
 # One-pass check of the toolkit's expected end state:
 # group membership, key packages, fonts, Firefox user.js,
@@ -40,9 +40,9 @@ pkg() {  # pkg <name> [critical|optional]
     if is_installed "$name"; then
         state="ok"; detail="installed"
     elif [ "$level" = "optional" ]; then
-        state="warn"; detail="not installed (optional — OK to skip)"
+        state="warn"; detail="not installed (optional -- OK to skip)"
     else
-        state="fail"; detail="missing — re-run the relevant script"
+        state="fail"; detail="missing -- re-run the relevant script"
     fi
     report "$name" "$state" "$detail"
 }
@@ -55,9 +55,9 @@ pkg_glob() {
         || grep -q '^ii' <<<"$(dpkg-query -l "${name}*" 2>/dev/null)"; then
         state="ok"; detail="installed"
     elif [ "$level" = "optional" ]; then
-        state="warn"; detail="not installed (optional — OK to skip)"
+        state="warn"; detail="not installed (optional -- OK to skip)"
     else
-        state="fail"; detail="missing — re-run the relevant script"
+        state="fail"; detail="missing -- re-run the relevant script"
     fi
     report "$name*" "$state" "$detail"
 }
@@ -100,9 +100,9 @@ dir_exists() {
     if [ -e "$path" ]; then
         report "$name" ok
     elif [ "$level" = "warn" ]; then
-        report "$name" warn "not found — re-run the relevant script (or skip)"
+        report "$name" warn "not found -- re-run the relevant script (or skip)"
     else
-        report "$name" fail "not found — re-run the relevant script"
+        report "$name" fail "not found -- re-run the relevant script"
     fi
 }
 
@@ -143,7 +143,7 @@ for g in input video render; do
     if grep -qx "$g" <<<"$(id -nG "$ACTUAL_USER" 2>/dev/null | tr ' ' '\n')"; then
         report "group: $g" ok
     else
-        report "group: $g" fail "user not in $g — re-run addUserToGroups.sh or: sudo usermod -aG $g $ACTUAL_USER"
+        report "group: $g" fail "user not in $g -- re-run addUserToGroups.sh or: sudo usermod -aG $g $ACTUAL_USER"
     fi
 done
 
@@ -162,16 +162,16 @@ case "$_power_driver" in
         if is_installed power-profiles-daemon || is_installed tuned-ppd; then
             report "power manager" ok "$_power_driver + power-profiles-daemon"
         elif is_installed tlp; then
-            report "power manager" warn "$_power_driver + TLP — prefer power-profiles-daemon"
+            report "power manager" warn "$_power_driver + TLP -- prefer power-profiles-daemon"
         else
-            report "power manager" warn "$_power_driver — no power manager installed"
+            report "power manager" warn "$_power_driver -- no power manager installed"
         fi
         ;;
     *)
         if is_installed tlp; then
             report "power manager" ok "$_power_driver + TLP"
         else
-            report "power manager" warn "$_power_driver — TLP not installed (fine on AC-only desktops)"
+            report "power manager" warn "$_power_driver -- TLP not installed (fine on AC-only desktops)"
         fi
         ;;
 esac
@@ -196,7 +196,7 @@ if is_installed pipewire-pulse || is_installed wireplumber; then
 elif is_installed pulseaudio; then
     pkg pulseaudio-module-bluetooth optional
 else
-    report "Bluetooth audio" warn "neither PipeWire nor PulseAudio present — nothing to bridge"
+    report "Bluetooth audio" warn "neither PipeWire nor PulseAudio present -- nothing to bridge"
 fi
 
 # --- 3. Optional/user-picked packages (warn roll, not fail) --------------
@@ -224,7 +224,7 @@ pkg cron optional
 if grep -qi "JetBrainsMono Nerd Font" <<<"$(fc-list 2>/dev/null)"; then
     report "JetBrainsMono Nerd Font" ok
 else
-    report "JetBrainsMono Nerd Font" fail "not found — re-run installFonts.sh"
+    report "JetBrainsMono Nerd Font" fail "not found -- re-run installFonts.sh"
 fi
 dir_exists "fontconfig defaults (fonts.conf)" "$HOME/.config/fontconfig/fonts.conf" warn
 
@@ -250,17 +250,17 @@ if [ -f "$CURRENT_THEME_FILE" ]; then
         break
     done
 fi
-# Darkmatter is the shipped default; Catppuccin is opt-in.
-[ -n "$CURRENT_PALETTE" ] || CURRENT_PALETTE="Darkmatter"
+# Graphite Amber is the shipped default; other palettes are opt-in.
+[ -n "$CURRENT_PALETTE" ] || CURRENT_PALETTE="GraphiteAmber"
 
 # Accent colour, Plasma 6 style. Plasma 6 has NO named accents: kdeglobals
 # stores a hex in [General] AccentColor (with a ColorSchemeHash beside it), so
 # the old check for a `ColorScheme` *name* could never pass on 6.x and always
 # warned "unset". Compare the palette's C_ACCENT hex instead, normalising the
-# leading '#' (palette.sh stores e75353, kdeglobals stores #e75353).
+# leading '#' (palette.sh stores e8a33d, kdeglobals stores #e8a33d).
 PALETTE_ACCENT=""
-if [ -f "${PALETTE_FILE:-$SCRIPT_DIR/../themes/darkmatter/palette.sh}" ]; then
-    PALETTE_ACCENT="$(bash -c "source '${PALETTE_FILE:-$SCRIPT_DIR/../themes/darkmatter/palette.sh}' 2>/dev/null; printf '%s' \"\${C_ACCENT:-}\"")"
+if [ -f "${PALETTE_FILE:-$SCRIPT_DIR/../themes/graphite-amber/palette.sh}" ]; then
+    PALETTE_ACCENT="$(bash -c "source '${PALETTE_FILE:-$SCRIPT_DIR/../themes/graphite-amber/palette.sh}' 2>/dev/null; printf '%s' \"\${C_ACCENT:-}\"")"
 fi
 
 # The engine names the Global Theme directory "${PALETTE_SHORT}Theme"
@@ -274,11 +274,11 @@ LOOKFEEL_DIR="$HOME/.local/share/plasma/look-and-feel/${CURRENT_PALETTE}Theme"
 if [ -f "$LOOKFEEL_DIR/metadata.json" ]; then
     report "Global Theme manifest ($CURRENT_PALETTE)" ok "metadata.json present"
 else
-    report "Global Theme manifest ($CURRENT_PALETTE)" warn "no metadata.json in $LOOKFEEL_DIR — re-run 14-plasmaTheme.sh"
+    report "Global Theme manifest ($CURRENT_PALETTE)" warn "no metadata.json in $LOOKFEEL_DIR -- re-run 14-plasmaTheme.sh"
 fi
 # How a Plasma 6 LookAndFeel actually applies colors: contents/defaults carries
 # "[kdeglobals][General] ColorScheme=<Name>", and Plasma writes that into
-# kdeglobals on apply. It does NOT read a contents/colors entry — no stock theme
+# kdeglobals on apply. It does NOT read a contents/colors entry -- no stock theme
 # (org.kde.breezedark.desktop) or third-party one has one, so asserting a
 # contents/colors symlink could never pass. Check the file that is read, and
 # that the scheme it names actually exists.
@@ -293,15 +293,13 @@ if [ -f "$LNF_DEFAULTS" ]; then
         report "Global Theme color scheme ($CURRENT_PALETTE)" warn "no ColorScheme= in contents/defaults"
     fi
 else
-    report "Global Theme color scheme ($CURRENT_PALETTE)" warn "no contents/defaults in $LOOKFEEL_DIR — re-run 14-plasmaTheme.sh"
+    report "Global Theme color scheme ($CURRENT_PALETTE)" warn "no contents/defaults in $LOOKFEEL_DIR -- re-run 14-plasmaTheme.sh"
 fi
 
-# Catppuccin is optional and only present if 14-plasmaTheme.sh's prompt was
-# accepted. Warn, never fail: not choosing it is the normal case.
-if grep -qi catppuccin <<<"$(ls "$HOME/.local/share/plasma/look-and-feel" 2>/dev/null)"; then
-    report "Catppuccin Plasma theme" ok
+if [ -f "$HOME/.local/share/plasma/look-and-feel/GraphiteAmberTheme/metadata.json" ]; then
+    report "Graphite Amber Global Theme" ok
 else
-    report "Catppuccin Plasma theme" warn "not applied (optional) — 14-plasmaTheme.sh offers it"
+    report "Graphite Amber Global Theme" warn "not applied -- re-run 14-plasmaTheme.sh"
 fi
 pkg "papirus-icon-theme" optional
 dir_exists "Papirus-Dark icons" "/usr/share/icons/Papirus-Dark" warn
@@ -312,20 +310,20 @@ PANEL_SRC="$HOME/.config/plasma-org.kde.plasma.desktop-appletsrc"
 if [ -e "$PANEL_SRC.pre-plasmaPanel" ]; then
     report "Clean floating panel (plasmaPanel.sh)" ok "floating panel layout is active"
 else
-    report "Clean floating panel (plasmaPanel.sh)" warn "not applied — run plasmaPanel.sh (optional)"
+    report "Clean floating panel (plasmaPanel.sh)" warn "not applied -- run plasmaPanel.sh (optional)"
 fi
 dir_exists "Konsole scheme ($CURRENT_PALETTE)" "$HOME/.local/share/konsole/$CURRENT_PALETTE.colorscheme" warn
 dir_exists "Konsole profile ($CURRENT_PALETTE)" "$HOME/.local/share/konsole/$CURRENT_PALETTE.profile" warn
 dir_exists "Plasma color scheme ($CURRENT_PALETTE)" "$HOME/.local/share/color-schemes/$CURRENT_PALETTE.colors" warn
 
 # --- 6b. Boot theming (bootThemeSetup.sh) --------------------------------
-dir_exists "Plymouth catppuccin-mocha" "/usr/share/plymouth/themes/catppuccin-mocha/catppuccin-mocha.plymouth" warn
+dir_exists "Plymouth graphite-amber" "/usr/share/plymouth/themes/graphite-amber/graphite-amber.plymouth" warn
 if grep -q '^GRUB_THEME=' /etc/default/grub 2>/dev/null; then
-    report "GRUB Catppuccin theme" ok
+    report "GRUB Graphite Amber theme" ok
 else
-    report "GRUB Catppuccin theme" warn "GRUB_THEME not set in /etc/default/grub"
+    report "GRUB Graphite Amber theme" warn "GRUB_THEME not set in /etc/default/grub"
 fi
-dir_exists "SDDM Catppuccin theme conf" "/etc/sddm.conf.d/catppuccin-theme.conf" warn
+dir_exists "SDDM Graphite Amber theme conf" "/etc/sddm.conf.d/graphite-amber-theme.conf" warn
 
 # --- 6c. Baloo / beep / misc per-user toggles ------------------------------
 # Baloo indexing is disabled by 12-kdeDebloat.sh, NOT by 33-plasmaPerformance.sh.
@@ -336,7 +334,7 @@ dir_exists "SDDM Catppuccin theme conf" "/etc/sddm.conf.d/catppuccin-theme.conf"
 if grep -q '^ExcludeFolders\[\]=' "$HOME/.config/baloofilerc" 2>/dev/null; then
     report "Baloo folder exclusions" ok "$(grep -c '^ExcludeFolders\[\]=' "$HOME/.config/baloofilerc") paths"
 else
-    report "Baloo folder exclusions" warn "no ExcludeFolders[] — run 33-plasmaPerformance.sh (optional)"
+    report "Baloo folder exclusions" warn "no ExcludeFolders[] -- run 33-plasmaPerformance.sh (optional)"
 fi
 dir_exists "mousepoll.conf (touchpad fix)" "/etc/modprobe.d/mousepoll.conf" warn
 
@@ -344,11 +342,11 @@ dir_exists "mousepoll.conf (touchpad fix)" "/etc/modprobe.d/mousepoll.conf" warn
 # report on a shell that had never been wired up: the config files were on
 # disk, the rc that loads them was not, and .bashrc never sourced either.
 if [ ! -d "$HOME/.config/bash" ]; then
-    report "ButterBash install" warn "no ~/.config/bash — run 22-terminalButterbash.sh"
+    report "ButterBash install" warn "no ~/.config/bash -- run 22-terminalButterbash.sh"
 elif [ ! -f "$HOME/.config/butterbash/bashrc" ]; then
     report "ButterBash install" warn "~/.config/bash exists but ~/.config/butterbash/bashrc is missing (partial install)"
 elif ! grep -qF "# >>> butterbash (devuan-kde-setup 22-terminalButterbash.sh) >>>" "$HOME/.bashrc" 2>/dev/null; then
-    report "ButterBash install" warn "installed, but .bashrc has no butterbash block — the shell will not load it"
+    report "ButterBash install" warn "installed, but .bashrc has no butterbash block -- the shell will not load it"
 else
     report "ButterBash install" ok "~/.config/bash + rc, wired into .bashrc"
 fi
@@ -359,7 +357,7 @@ if [ -f "$HOME/.config/fastfetch/config.jsonc" ]; then
     _ff_logo="$(grep -oE '"source"[[:space:]]*:[[:space:]]*"[a-z_]*"' "$HOME/.config/fastfetch/config.jsonc" 2>/dev/null | head -1 | sed 's/.*: *"\(.*\)"/\1/')"
     report "fastfetch config" ok "config.jsonc (logo: ${_ff_logo:-builtin})"
 else
-    report "fastfetch config" warn "no ~/.config/fastfetch/config.jsonc — run 23-fastfetchConfig.sh"
+    report "fastfetch config" warn "no ~/.config/fastfetch/config.jsonc -- run 23-fastfetchConfig.sh"
 fi
 
 # --- 6d. Plasma 6 settings the old versions wrote wrongly ------------------
@@ -375,19 +373,19 @@ if [ -n "$PALETTE_ACCENT" ]; then
         report "Plasma accent colour" warn "expected '#$PALETTE_ACCENT', got '$_acc_got'"
     fi
 else
-    report "Plasma accent colour" warn "palette defines no C_ACCENT — cannot verify"
+    report "Plasma accent colour" warn "palette defines no C_ACCENT -- cannot verify"
 fi
 TABBOX="$(kconfig_read kwinrc TabBox LayoutName)"
 if [ "$TABBOX" = "coverswitch" ] || [ -z "$TABBOX" ]; then
     report "KWin Alt-Tab layout" ok "${TABBOX:-not set (Plasma default)}"
 else
-    report "KWin Alt-Tab layout" warn "LayoutName=$TABBOX — expected coverswitch (33/27-plasma config)"
+    report "KWin Alt-Tab layout" warn "LayoutName=$TABBOX -- expected coverswitch (33/27-plasma config)"
 fi
 # KWin effects live in kwinrc [Plugins] on Plasma 6; kwineffectsrc is dead.
 if grep -q '^\[Plugins\]' "$HOME/.config/kwinrc" 2>/dev/null; then
     report "KWin effects in kwinrc [Plugins]" ok
 else
-    report "KWin effects in kwinrc [Plugins]" warn "no [Plugins] group — re-run 27-fancyPlasma.sh"
+    report "KWin effects in kwinrc [Plugins]" warn "no [Plugins] group -- re-run 27-fancyPlasma.sh"
 fi
 # Plasma 6 removed AccentColorFromWallpaper. If it is present the config was
 # written by an older script and the accent will not follow the scheme.
@@ -408,7 +406,7 @@ echo
 echo -e "${GREEN}  ${PASS} passed${NC}, ${RED}${FAIL} failed${NC}, ${YELLOW}${WARN} warnings${NC}"
 if [ "$FAIL" -gt 0 ]; then
     echo
-    log_err "Some checks failed — see lines above, then re-run the relevant script."
+    log_err "Some checks failed -- see lines above, then re-run the relevant script."
     exit 1
 fi
 exit 0

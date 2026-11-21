@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
-# themes/palettes.sh — every shipped palette, in one file.
+# themes/palettes.sh -- every shipped palette, in one file.
 #
 # This used to be themes/<id>/palette.sh, one directory per palette: 11 files
 # in 11 directories, all defining the same variables, discovered by globbing
 # themes/*/ and sourced by path. Consolidated because the file sprawl was
-# costing more than it bought —
+# costing more than it bought --
 #
 #   * `git add themes/` moved 22 entries to add a single colour change, and a
 #     fresh clone carried 11 directories to explain 11 functions;
 #   * list_palettes() shelled out twice per palette (once for PALETTE_SHORT,
-#     once for PALETTE_NAME) — 22 subshells to print 11 lines, because
+#     once for PALETTE_NAME) -- 22 subshells to print 11 lines, because
 #     reading a variable set by a sourced file needs a subshell;
 #   * nothing was gained from the directory: no palette shipped an asset of
 #     its own, and templates already live once in themes/_base/tpl/.
@@ -19,20 +19,20 @@
 # its own function and load_palette() checks it against the id being loaded,
 # so a copy-pasted block cannot answer to the wrong name.
 #
-# Bodies are kept verbatim from the old per-palette files — comments and all —
+# Bodies are kept verbatim from the old per-palette files -- comments and all --
 # so `git log -p themes/darkmatter/palette.sh` still reads as the history of
 # the corresponding function here. To add a palette: add the id to PALETTE_IDS
 # (the order the picker shows) and one function. Nothing else needs touching.
 
 # Order matters: this is the order the interactive picker lists.
 PALETTE_IDS=(
+    graphite-amber
+    graphite-amber-cool
+    graphite-amber-light
     darkmatter
     darkmatter-orange
     dracula
-    frappe
     gruvbox
-    mocha-blue
-    mocha-red
     moe-dark
     nord
     otto
@@ -41,14 +41,14 @@ PALETTE_IDS=(
 )
 
 # --------------------------------------------------------------------------
-# palette_darkmatter() — id "darkmatter" (the - is _ in the function name:
+# palette_darkmatter() -- id "darkmatter" (the - is _ in the function name:
 # bash cannot CALL a function with a hyphen in its name, only define one.)
 # --------------------------------------------------------------------------
 palette_darkmatter() {
 PALETTE_ID="darkmatter"
 PALETTE_NAME="Darkmatter"
 PALETTE_SHORT="Darkmatter"
-PALETTE_DESC="The Darkmatter rice — near-black shell with the red #e75353 accent, matching the XFCE/xfwm4 theme this toolkit grew up alongside."
+PALETTE_DESC="The Darkmatter rice -- near-black shell with the red #e75353 accent, matching the XFCE/xfwm4 theme this toolkit grew up alongside."
 
 # Cursor theme for this palette. Bibata Modern Ice is a white/neutral
 # Material cursor, which stays legible on every dark background in this
@@ -91,14 +91,14 @@ C_15=ffffff
 }
 
 # --------------------------------------------------------------------------
-# palette_darkmatter_orange() — id "darkmatter-orange" (the - is _ in the function name:
+# palette_darkmatter_orange() -- id "darkmatter-orange" (the - is _ in the function name:
 # bash cannot CALL a function with a hyphen in its name, only define one.)
 # --------------------------------------------------------------------------
 palette_darkmatter_orange() {
 PALETTE_ID="darkmatter-orange"
 PALETTE_NAME="Darkmatter (Upstream Orange)"
 PALETTE_SHORT="DarkmatterOrange"
-PALETTE_DESC="Darkmatter with the upstream accent left untouched (#e78a53) instead of the red remap — for people who want the theme exactly as the author shipped it."
+PALETTE_DESC="Darkmatter with the upstream accent left untouched (#e78a53) instead of the red remap -- for people who want the theme exactly as the author shipped it."
 
 # Cursor theme for this palette. Bibata Modern Ice is a white/neutral
 # Material cursor, which stays legible on every dark background in this
@@ -141,7 +141,7 @@ C_15=ffffff
 }
 
 # --------------------------------------------------------------------------
-# palette_dracula() — id "dracula" (the - is _ in the function name:
+# palette_dracula() -- id "dracula" (the - is _ in the function name:
 # bash cannot CALL a function with a hyphen in its name, only define one.)
 # --------------------------------------------------------------------------
 palette_dracula() {
@@ -191,64 +191,63 @@ C_15=f8f8f2
 }
 
 # --------------------------------------------------------------------------
-# palette_frappe() — id "frappe" (the - is _ in the function name:
+# palette_graphite_amber_light() -- id "graphite-amber-light" (the - is _ in the function name:
 # bash cannot CALL a function with a hyphen in its name, only define one.)
 # --------------------------------------------------------------------------
-palette_frappe() {
-PALETTE_ID="frappe"
-PALETTE_NAME="Catppuccin Frappe"
-PALETTE_SHORT="CatppuccinFrappe"
-PALETTE_DESC="Catppuccin Frappe — a lighter, blue-washed take on Catppuccin."
+palette_graphite_amber_light() {
+PALETTE_ID="graphite-amber-light"
+PALETTE_NAME="Graphite Amber (Light)"
+PALETTE_SHORT="GraphiteAmberLight"
+PALETTE_DESC="Lifted graphite surfaces with the same warm amber accent."
 
-# Cursor theme for this palette. Bibata Modern Ice is a white/neutral
-# Material cursor, which stays legible on every dark background in this
-# kit. Left optional on purpose: an id that is not installed yields NO
-# cursor rather than a fallback, so an unset value must mean "leave the
-# cursor alone", never "assume a default".
-CURSOR_THEME="Bibata-Modern-Ice"
+# Cursor theme for this palette. Adwaita is the stock cursor and stays
+# legible on every graphite surface here. Left optional on purpose: an id that
+# is not installed yields NO cursor rather than a fallback, so an unset value
+# must mean "leave the cursor alone", never "assume a default".
+CURSOR_THEME="Adwaita"
 
-C_BG=303446
-C_MANTLE=292c3c
-C_CRUST=232634
-C_SURFACE0=414559
-C_SURFACE1=51576d
-C_OVERLAY0=737994
-C_OVERLAY1=838ba7
-C_TEXT=c6d0f5
-C_SUBTEXT0=a5adce
-C_SUBTEXT1=b5bfe2
+C_BG=202329
+C_MANTLE=282c33
+C_CRUST=16181d
+C_SURFACE0=30343b
+C_SURFACE1=3b4048
+C_OVERLAY0=575d67
+C_OVERLAY1=757c87
+C_TEXT=d8d3c8
+C_SUBTEXT0=9a9aa2
+C_SUBTEXT1=b5b0a6
 
-C_ACCENT=8caaee
-C_ACCENT_FG=303446
-C_ACCENT_DIM=a6c0f2
+C_ACCENT=e8a33d
+C_ACCENT_FG=16181d
+C_ACCENT_DIM=d2992f
 
-C_0=51576d
-C_1=e78284
-C_2=a6d189
-C_3=e5c890
-C_4=8caaee
-C_5=f4b8e4
-C_6=81c8be
-C_7=b5bfe2
-C_8=626880
-C_9=e78284
-C_10=a6d189
-C_11=e5c890
-C_12=8caaee
-C_13=f4b8e4
-C_14=81c8be
-C_15=a5adce
+C_0=30343b
+C_1=c97064
+C_2=8fb57a
+C_3=e8a33d
+C_4=7e9db5
+C_5=a78bb5
+C_6=79a9a6
+C_7=9a9aa2
+C_8=4a4e57
+C_9=c97064
+C_10=8fb57a
+C_11=e8a33d
+C_12=7e9db5
+C_13=a78bb5
+C_14=79a9a6
+C_15=d8d3c8
 }
 
 # --------------------------------------------------------------------------
-# palette_gruvbox() — id "gruvbox" (the - is _ in the function name:
+# palette_gruvbox() -- id "gruvbox" (the - is _ in the function name:
 # bash cannot CALL a function with a hyphen in its name, only define one.)
 # --------------------------------------------------------------------------
 palette_gruvbox() {
 PALETTE_ID="gruvbox"
 PALETTE_NAME="Gruvbox Dark"
 PALETTE_SHORT="GruvboxDark"
-PALETTE_DESC="Gruvbox (dark, medium) — warm, retro-groove colors with a yellow accent."
+PALETTE_DESC="Gruvbox (dark, medium) -- warm, retro-groove colors with a yellow accent."
 
 # Cursor theme for this palette. Bibata Modern Ice is a white/neutral
 # Material cursor, which stays legible on every dark background in this
@@ -291,107 +290,105 @@ C_15=ebdbb2
 }
 
 # --------------------------------------------------------------------------
-# palette_mocha_blue() — id "mocha-blue" (the - is _ in the function name:
+# palette_graphite_amber_cool() -- id "graphite-amber-cool" (the - is _ in the function name:
 # bash cannot CALL a function with a hyphen in its name, only define one.)
 # --------------------------------------------------------------------------
-palette_mocha_blue() {
-PALETTE_ID="mocha-blue"
-PALETTE_NAME="Catppuccin Mocha (Blue)"
-PALETTE_SHORT="CatppuccinBlue"
-PALETTE_DESC="Catppuccin Mocha with the calm sapphire/blue accent."
+palette_graphite_amber_cool() {
+PALETTE_ID="graphite-amber-cool"
+PALETTE_NAME="Graphite Amber (Cool)"
+PALETTE_SHORT="GraphiteAmberCool"
+PALETTE_DESC="Graphite surfaces with a cooler blue-gray overlay and the amber accent."
 
-# Cursor theme for this palette. Bibata Modern Ice is a white/neutral
-# Material cursor, which stays legible on every dark background in this
-# kit. Left optional on purpose: an id that is not installed yields NO
-# cursor rather than a fallback, so an unset value must mean "leave the
-# cursor alone", never "assume a default".
-CURSOR_THEME="Bibata-Modern-Ice"
+# Cursor theme for this palette. Adwaita is the stock cursor and stays
+# legible on every graphite surface here. Left optional on purpose: an id that
+# is not installed yields NO cursor rather than a fallback, so an unset value
+# must mean "leave the cursor alone", never "assume a default".
+CURSOR_THEME="Adwaita"
 
-C_BG=1e1e2e
-C_MANTLE=181825
-C_CRUST=11111b
-C_SURFACE0=313244
-C_SURFACE1=45475a
-C_OVERLAY0=6c7086
-C_OVERLAY1=7f849c
-C_TEXT=cdd6f4
-C_SUBTEXT0=a6adc8
-C_SUBTEXT1=bac2de
+C_BG=16181d
+C_MANTLE=1b1e23
+C_CRUST=101216
+C_SURFACE0=202329
+C_SURFACE1=30343b
+C_OVERLAY0=46515c
+C_OVERLAY1=667482
+C_TEXT=d8d3c8
+C_SUBTEXT0=9a9aa2
+C_SUBTEXT1=b5b0a6
 
-C_ACCENT=89b4fa
-C_ACCENT_FG=1e1e2e
-C_ACCENT_DIM=a4c7fb
+C_ACCENT=e8a33d
+C_ACCENT_FG=16181d
+C_ACCENT_DIM=d2992f
 
-C_0=45475a
-C_1=f38ba8
-C_2=a6e3a1
-C_3=f9e2af
-C_4=89b4fa
-C_5=f5c2e7
-C_6=94e2d5
-C_7=bac2de
-C_8=585b70
-C_9=f38ba8
-C_10=a6e3a1
-C_11=f9e2af
-C_12=89b4fa
-C_13=f5c2e7
-C_14=94e2d5
-C_15=a6adc8
+C_0=30343b
+C_1=c97064
+C_2=8fb57a
+C_3=e8a33d
+C_4=7e9db5
+C_5=a78bb5
+C_6=79a9a6
+C_7=9a9aa2
+C_8=4a4e57
+C_9=c97064
+C_10=8fb57a
+C_11=e8a33d
+C_12=7e9db5
+C_13=a78bb5
+C_14=79a9a6
+C_15=d8d3c8
 }
 
 # --------------------------------------------------------------------------
-# palette_mocha_red() — id "mocha-red" (the - is _ in the function name:
+# palette_graphite_amber() -- id "graphite-amber" (the - is _ in the function name:
 # bash cannot CALL a function with a hyphen in its name, only define one.)
 # --------------------------------------------------------------------------
-palette_mocha_red() {
-PALETTE_ID="mocha-red"
-PALETTE_NAME="Catppuccin Mocha (Red)"
-PALETTE_SHORT="CatppuccinRed"
-PALETTE_DESC="Catppuccin Mocha with the classic red accent — matches the stock catppuccin/kde Konsole theme."
+palette_graphite_amber() {
+PALETTE_ID="graphite-amber"
+PALETTE_NAME="Graphite Amber"
+PALETTE_SHORT="GraphiteAmber"
+PALETTE_DESC="Graphite surfaces with a warm amber accent - the shipped default."
 
-# Cursor theme for this palette. Bibata Modern Ice is a white/neutral
-# Material cursor, which stays legible on every dark background in this
-# kit. Left optional on purpose: an id that is not installed yields NO
-# cursor rather than a fallback, so an unset value must mean "leave the
-# cursor alone", never "assume a default".
-CURSOR_THEME="Bibata-Modern-Ice"
+# Cursor theme for this palette. Adwaita is the stock cursor and stays
+# legible on every graphite surface here. Left optional on purpose: an id that
+# is not installed yields NO cursor rather than a fallback, so an unset value
+# must mean "leave the cursor alone", never "assume a default".
+CURSOR_THEME="Adwaita"
 
-C_BG=1e1e2e
-C_MANTLE=181825
-C_CRUST=11111b
-C_SURFACE0=313244
-C_SURFACE1=45475a
-C_OVERLAY0=6c7086
-C_OVERLAY1=7f849c
-C_TEXT=cdd6f4
-C_SUBTEXT0=a6adc8
-C_SUBTEXT1=bac2de
+C_BG=16181d
+C_MANTLE=1c1f24
+C_CRUST=101216
+C_SURFACE0=202329
+C_SURFACE1=30343b
+C_OVERLAY0=4a4e57
+C_OVERLAY1=6b6f79
+C_TEXT=d8d3c8
+C_SUBTEXT0=9a9aa2
+C_SUBTEXT1=b5b0a6
 
-C_ACCENT=f38ba8
-C_ACCENT_FG=1e1e2e
-C_ACCENT_DIM=f9b6c8
+C_ACCENT=e8a33d
+C_ACCENT_FG=16181d
+C_ACCENT_DIM=d2992f
 
-C_0=45475a
-C_1=f38ba8
-C_2=a6e3a1
-C_3=f9e2af
-C_4=89b4fa
-C_5=f5c2e7
-C_6=94e2d5
-C_7=bac2de
-C_8=585b70
-C_9=f38ba8
-C_10=a6e3a1
-C_11=f9e2af
-C_12=89b4fa
-C_13=f5c2e7
-C_14=94e2d5
-C_15=a6adc8
+C_0=30343b
+C_1=c97064
+C_2=8fb57a
+C_3=e8a33d
+C_4=7e9db5
+C_5=a78bb5
+C_6=79a9a6
+C_7=9a9aa2
+C_8=4a4e57
+C_9=c97064
+C_10=8fb57a
+C_11=e8a33d
+C_12=7e9db5
+C_13=a78bb5
+C_14=79a9a6
+C_15=d8d3c8
 }
 
 # --------------------------------------------------------------------------
-# palette_nord() — id "nord" (the - is _ in the function name:
+# palette_nord() -- id "nord" (the - is _ in the function name:
 # bash cannot CALL a function with a hyphen in its name, only define one.)
 # --------------------------------------------------------------------------
 palette_nord() {
@@ -441,11 +438,11 @@ C_15=eceff4
 }
 
 # --------------------------------------------------------------------------
-# palette_otto() — id "otto" (the - is _ in the function name:
+# palette_otto() -- id "otto" (the - is _ in the function name:
 # bash cannot CALL a function with a hyphen in its name, only define one.)
 # --------------------------------------------------------------------------
 palette_otto() {
-# OttoRed — muted-spectrum red/black palette.
+# OttoRed -- muted-spectrum red/black palette.
 #
 # Modelled on the Otto Plasma theme by App-walled (store.kde.org/p/1358262/):
 # an almost-black neutral ramp carrying one saturated red, with the ANSI
@@ -462,7 +459,7 @@ palette_otto() {
 PALETTE_ID="otto"
 PALETTE_NAME="Otto Red"
 PALETTE_SHORT="OttoRed"
-PALETTE_DESC="Otto-inspired muted-spectrum red/black — near-black surfaces, one saturated red accent, desaturated ANSI range."
+PALETTE_DESC="Otto-inspired muted-spectrum red/black -- near-black surfaces, one saturated red accent, desaturated ANSI range."
 
 # Same reasoning as every other palette here: an id that is not installed
 # yields no cursor at all rather than a fallback, so this stays optional and
@@ -514,14 +511,14 @@ C_15=f2f2f5
 }
 
 # --------------------------------------------------------------------------
-# palette_solarized() — id "solarized" (the - is _ in the function name:
+# palette_solarized() -- id "solarized" (the - is _ in the function name:
 # bash cannot CALL a function with a hyphen in its name, only define one.)
 # --------------------------------------------------------------------------
 palette_solarized() {
 PALETTE_ID="solarized"
 PALETTE_NAME="Solarized Dark"
 PALETTE_SHORT="SolarizedDark"
-PALETTE_DESC="Solarized dark — the precision color scheme, cyan-blue accent."
+PALETTE_DESC="Solarized dark -- the precision color scheme, cyan-blue accent."
 
 # Cursor theme for this palette. Bibata Modern Ice is a white/neutral
 # Material cursor, which stays legible on every dark background in this
@@ -564,14 +561,14 @@ C_15=fdf6e3
 }
 
 # --------------------------------------------------------------------------
-# palette_tokyo_night() — id "tokyo-night" (the - is _ in the function name:
+# palette_tokyo_night() -- id "tokyo-night" (the - is _ in the function name:
 # bash cannot CALL a function with a hyphen in its name, only define one.)
 # --------------------------------------------------------------------------
 palette_tokyo_night() {
 PALETTE_ID="tokyo-night"
 PALETTE_NAME="Tokyo Night"
 PALETTE_SHORT="TokyoNight"
-PALETTE_DESC="Tokyo Night — deep storm blues with bright terminal accents."
+PALETTE_DESC="Tokyo Night -- deep storm blues with bright terminal accents."
 
 # Cursor theme for this palette. Bibata Modern Ice is a white/neutral
 # Material cursor, which stays legible on every dark background in this
