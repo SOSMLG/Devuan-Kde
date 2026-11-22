@@ -44,7 +44,7 @@
 ```
 ~/.config/bash/
 ├── aliases.bash          # All command shortcuts
-├── prompt.bash           # Git-aware prompt configuration  
+├── prompt.bash           # Git-aware prompt configuration
 ├── keybinds.bash         # Keyboard shortcuts
 ├── fzf.bash             # FZF fuzzy finder setup
 ├── zoxide.bash          # zoxide smarter-cd hook
@@ -157,7 +157,7 @@
 
 ### Functions
 
-For note-taking and todo management, use [ButterNotes](https://justaguy.dev/drew/butternotes)
+For note-taking and todo management, use [ButterNotes](https://codeberg.org/justaguylinux/butternotes)
 
 #### Utility Functions
 
@@ -258,7 +258,7 @@ Edit individual files in `~/.config/bash/functions/`
 ## Project Info
 
 - **Author**: JustAGuyLinux (YouTube)
-- **Repository**: https://justaguy.dev/drew/butterbash
+- **Repository**: https://codeberg.org/justaguylinux/butterbash
 - **License**: MIT
 
 ## Technical Details
