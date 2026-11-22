@@ -87,7 +87,7 @@ fi
 # ---------------------------------------------------------------------------
 # 2. Compositing — deliberately opt-in and clearly labelled, because it
 #    trades away blur/translucency. kwinrc [Compositing] is still the
-#    Plasma 6 location (compositingEnabled under [Compositing]).
+#    Plasma 6 location (`Enabled` under `[Compositing]`).
 #
 #    Stays default N on purpose even though the rest of this step now runs
 #    unattended: 27-fancyPlasma.sh (which runs earlier) turns the Blur effect
@@ -96,14 +96,14 @@ fi
 # ---------------------------------------------------------------------------
 if ask "Disable desktop compositing? (Not recommended: removes blur, translucency, and animation.)" "N"; then
     if [ -n "$KWRITECONFIG" ]; then
-        kwrite_user --file kwinrc --group Compositing --key CompositingEnabled false
+        kwrite_user --file kwinrc --group Compositing --key Enabled false
         log_ok "Compositing disabled — expect a visual change (no blur/translucency)."
     else
         mkdir -p "$HOME/.config"
         if grep -q '^\[Compositing\]$' "$HOME/.config/kwinrc" 2>/dev/null; then
-            sed -i 's/^CompositingEnabled=.*/CompositingEnabled=false/' "$HOME/.config/kwinrc"
+            sed -i 's/^Enabled=.*/Enabled=false/' "$HOME/.config/kwinrc"
         else
-            printf '\n[Compositing]\nCompositingEnabled=false\n' >> "$HOME/.config/kwinrc"
+            printf '\n[Compositing]\nEnabled=false\n' >> "$HOME/.config/kwinrc"
         fi
         log_ok "Compositing disabled ($HOME/.config/kwinrc)."
     fi
@@ -160,17 +160,9 @@ if ask "Exclude large read-only trees from file search indexing (ports, ISO, Ste
         cp "$BALOO_EXCLUDE" "$BALOO_EXCLUDE.bak.$(date +%Y%m%d%H%M%S)"
     fi
     cat > "$BALOO_EXCLUDE" <<'EOF'
-[Basic Settings]
-ExcludeFolders[]=/var/lib/ports
-ExcludeFolders[]=/usr/src
-ExcludeFolders[]=/srv
-ExcludeFolders[]=/mnt
-ExcludeFolders[]=/media
-ExcludeFolders[]=/run/media
-ExcludeFolders[]=/home/ports
-ExcludeFolders[]=/tmp
-ExcludeFolders[]=/var/tmp
-IndexHiddenFiles=false
+[General]
+exclude folders[$e]=/var/lib/ports,/usr/src,/srv,/mnt,/media,/run/media,/home/ports,/tmp,/var/tmp
+index hidden folders=false
 EOF
     log_ok "Baloo exclusions written to $BALOO_EXCLUDE."
     log_info "Rebuild the index once: 'balooctl6 reindex' (or it happens lazily)."

@@ -14,7 +14,7 @@
 // see themes/*/palette.sh), so `fastfetch` sits in the same color story as the
 // Konsole scheme the theme engine installs.
 {
-    "$schema": "https://raw.githubusercontent.com/fastfetch-cli/fastfetch/dev/doc/schema.json",
+    "$schema": "https://raw.githubusercontent.com/fastfetch-cli/fastfetch/dev/doc/json_schema.json",
 
     "logo": {
         "type": "builtin",

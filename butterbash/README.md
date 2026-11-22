@@ -15,7 +15,7 @@ A smooth, modular Bash configuration framework that makes your shell experience 
 - **Extensive Aliases**: Productivity shortcuts for common tasks
 - **Archive Extraction**: Universal `extract` command for all archive types
 - **System Functions**: Quick system info, colored man pages, and more
-- **Extension Ready**: Works perfectly with [ButterNotes](https://justaguy.dev/drew/butternotes) for note-taking and todo management
+- **Extension Ready**: Works with [ButterNotes](https://justaguy.dev/drew/butternotes) for note-taking and todo management
 
 ## 📦 Installation
 
@@ -100,7 +100,7 @@ alias myalias="command"
 
 ### Integration with Other Projects
 
-ButterBash works seamlessly with other projects in the ButterScripts ecosystem:
+ButterBash works with other projects in the ButterScripts ecosystem:
 - **[ButterScripts](https://justaguy.dev/drew/butterscripts)** - Comprehensive setup scripts for Debian systems
 - **[ButterNotes](https://justaguy.dev/drew/butternotes)** - Note-taking and todo management extension
 - Integrates with terminal emulators like WezTerm
@@ -116,7 +116,7 @@ git clone https://justaguy.dev/drew/butternotes.git
 cd butternotes && ./install.sh
 ```
 
-ButterNotes works perfectly alongside ButterBash and adds:
+ButterNotes works alongside ButterBash and adds:
 - Intelligent note-taking with clipboard integration
 - Todo management with markdown checkboxes
 - Project organization with FZF

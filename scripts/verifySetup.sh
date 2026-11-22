@@ -240,28 +240,26 @@ fi
 # theme.sh writes so a user who swapped palettes with 46-applyThemes.sh still
 # verifies against what is actually installed, instead of hardcoding one name.
 CURRENT_PALETTE=""
+PALETTE_ACCENT=""
 CURRENT_THEME_FILE="${XDG_STATE_HOME:-$HOME/.local/state}/devuan-kde-setup/current-theme"
 if [ -f "$CURRENT_THEME_FILE" ]; then
     CURRENT_PALETTE_ID="$(cat "$CURRENT_THEME_FILE")"
-    for _pd in "$SCRIPT_DIR"/../themes/*/; do
-        [ "$(basename "$_pd")" = "$CURRENT_PALETTE_ID" ] || continue
-        CURRENT_PALETTE="$(PALETTE_SHORT= bash -c "source '$_pd/palette.sh' 2>/dev/null; printf '%s' \"\${PALETTE_SHORT:-}\"")"
-        PALETTE_FILE="$_pd/palette.sh"
-        break
-    done
+    _palette_data="$(bash -c '
+        source "$1" >/dev/null 2>&1 || exit 1
+        fn="palette_${2//-/_}"
+        declare -F "$fn" >/dev/null 2>&1 || exit 1
+        "$fn"
+        printf "%s\n%s\n" "${PALETTE_SHORT:-}" "${C_ACCENT:-}"
+    ' _ "$SCRIPT_DIR/../themes/palettes.sh" "$CURRENT_PALETTE_ID")"
+    CURRENT_PALETTE="$(sed -n '1p' <<<"$_palette_data")"
+    PALETTE_ACCENT="$(sed -n '2p' <<<"$_palette_data")"
 fi
-# Graphite Amber is the shipped default; other palettes are opt-in.
 [ -n "$CURRENT_PALETTE" ] || CURRENT_PALETTE="GraphiteAmber"
+[ -n "$PALETTE_ACCENT" ] || PALETTE_ACCENT="e8a33d"
 
-# Accent colour, Plasma 6 style. Plasma 6 has NO named accents: kdeglobals
-# stores a hex in [General] AccentColor (with a ColorSchemeHash beside it), so
-# the old check for a `ColorScheme` *name* could never pass on 6.x and always
-# warned "unset". Compare the palette's C_ACCENT hex instead, normalising the
-# leading '#' (palette.sh stores e8a33d, kdeglobals stores #e8a33d).
-PALETTE_ACCENT=""
-if [ -f "${PALETTE_FILE:-$SCRIPT_DIR/../themes/graphite-amber/palette.sh}" ]; then
-    PALETTE_ACCENT="$(bash -c "source '${PALETTE_FILE:-$SCRIPT_DIR/../themes/graphite-amber/palette.sh}' 2>/dev/null; printf '%s' \"\${C_ACCENT:-}\"")"
-fi
+# Accent colour, Plasma 6 style. kdeglobals stores a hex in [General]
+# AccentColor; compare it with the palette function's C_ACCENT, normalising
+# the leading '#' and case.
 
 # The engine names the Global Theme directory "${PALETTE_SHORT}Theme"
 # (scripts/lib/theme.sh), not "${PALETTE_SHORT}". Using the bare short name
@@ -365,8 +363,10 @@ fi
 # wrong key reads as "configured" in the file and behaves as unset in Plasma.
 if [ -n "$PALETTE_ACCENT" ]; then
     _acc_got="$(kconfig_read kdeglobals "General" "AccentColor")"
-    if [ "${_acc_got#\#}" ] && [ "${_acc_got#\#}" = "${PALETTE_ACCENT#\#}" ]; then
-        report "Plasma accent colour" ok "#$PALETTE_ACCENT"
+    _got_lc="${_acc_got#\#}"; _got_lc="${_got_lc,,}"
+    _want_lc="${PALETTE_ACCENT#\#}"; _want_lc="${_want_lc,,}"
+    if [ -n "$_got_lc" ] && [ "$_got_lc" = "$_want_lc" ]; then
+        report "Plasma accent colour" ok "#$_want_lc"
     elif [ -z "$_acc_got" ]; then
         report "Plasma accent colour" warn "AccentColor unset in kdeglobals [General]"
     else

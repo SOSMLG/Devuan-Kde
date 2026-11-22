@@ -144,7 +144,7 @@ step that needs them runs; the Plasma theme itself is always generated locally.
 | What | From | Pin |
 | --- | --- | --- |
 | ButterBash | `codeberg.org/justaguylinux/butterbash` | commit `ae194a92923c922e1baaede280940a5a256da99f`, tarball SHA256 `0989771e…96c9` |
-| Moe Dark Global Theme | pinned mirror via `scripts/lib/moe.sh` | SHA256 verified at download when the `moe-dark` palette is applied |
+| Optional external Global Theme | pinned mirror via `scripts/lib/moe.sh` | SHA256 verified at download when that legacy palette is applied |
 
 `22-terminalButterbash.sh` fetches a **pinned commit**, not a branch, so two
 runs of the step cannot silently install different code, and it refuses to
@@ -174,29 +174,28 @@ rather than one directory per palette — rendered through the templates in
 function; nothing else needs touching. The default **Graphite Amber** palette
 uses a graphite canvas (`#16181D`) with an amber accent (`#E8A33D`);
 `graphite-amber-cool` and `graphite-amber-light` keep the same accent on
-cooler and lifted surfaces. The old `darkmatter` and `darkmatter-orange` palettes remain selectable as legacy options.
+cooler and lifted surfaces. Additional legacy palettes remain selectable in the picker.
 
 ```bash
-bash scripts/46-applyThemes.sh            # interactive picker
+bash scripts/46-applyThemes.sh            # interactive picker (legacy options included)
 bash scripts/46-applyThemes.sh graphite-amber # apply one directly
-bash scripts/46-applyThemes.sh otto       # OttoRed
 ```
 
-### OttoRed, and what it does to an installed Otto
+### Optional external theme integration
 
-`otto` is a dark palette with Otto's signature red. The Otto theme itself is
-**not** in this repository and cannot be fetched by a script — it lives on
-`store.kde.org`, which is behind an Anubis challenge, so installing it is a
-Discover/GUI step. Nothing here is broken by that: with Otto absent, `otto`
-applies as a complete standalone palette and says what it could not find.
+The optional external theme is not in this repository and cannot be fetched by
+a script — it lives on `store.kde.org`, which is behind an Anubis challenge, so
+installing it is a Discover/GUI step. Nothing here is broken by that: without
+the external theme, its palette applies as a complete standalone palette and
+says what it could not find.
 
-With Otto installed, `scripts/lib/otto.sh` recolours what it finds in place,
+With the external theme installed, its helper recolours what it finds in place,
 from copies, and leaves the original package untouched:
 
-- **Global Theme** — copied to `~/.local/share/plasma/look-and-feel/OttoRed`
+- **Global Theme** — copied to a generated look-and-feel directory
   with `contents/layouts/` and `contents/widgets/` **removed**. That removal
   is the point: a Global Theme that ships layouts replaces the panel, which
-  would silently undo step 47 along with the user's pinned apps. Otto's
+  would silently undo step 47 along with the user's pinned apps. The upstream
   `Authors` and `License` are preserved; the `Id` and `Name` become the
   palette's, so a re-apply updates that copy instead of colliding with the
   installed one.
@@ -209,21 +208,19 @@ from copies, and leaves the original package untouched:
   up half-tinted, and Kvantum rebuilds that cache itself.
 - **Konsole** — section-aware recolour (`Color0`–`Color15`, `Background`,
   `Foreground`, `ColorTab`, …).
-- **Window decoration** — Otto's decoration is registered in the Global
-  Theme's `contents/defaults`, replacing only the `[kwinrc]` block so the
-  section after it survives.
+- **Window decoration** — the external theme's decoration is registered in the
+  Global Theme's `contents/defaults`, replacing only the `[kwinrc]` block so
+  the section after it survives.
 
 Every directory this toolkit writes carries a `.devmkde-generated` marker, and
-discovery skips it. Without that, the second `apply_palette otto` finds its own
-output as its "installed Otto" — the generated wrapper declares the name
-`Otto Red`, and the Kvantum copy's id ends in the palette name, so each run
+discovery skips it. Without that, a second apply of the legacy palette finds
+its own output as the "installed" theme — the generated wrapper uses the
+palette's name, and the Kvantum copy's id ends in that name, so each run
 compounded the last.
 
-Palettes are one file each and the renderer is shared: **12 ship in-tree**
-(`graphite-amber` (default), `graphite-amber-cool`, `graphite-amber-light`;
-legacy/optional: `darkmatter`, `darkmatter-orange`, `moe-dark`, `nord`, `dracula`,
-`tokyo-night`, `gruvbox`,
-`solarized`, `otto`).
+Palettes are one file each and the renderer is shared: **12 ship in-tree** —
+the Graphite Amber family plus legacy options that remain available in the
+interactive picker. Only the Graphite Amber variants are documented here.
 
 `14-plasmaTheme.sh` writes a real Plasma 6 Global Theme — `metadata.json`
 plus `contents/defaults`, which is how Plasma 6 actually applies a theme: it
