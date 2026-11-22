@@ -29,7 +29,7 @@ purpose.
 ## What gets baked in
 
 1. `iso/config/auto/config` — live-build options (Excalibur, amd64,
-   main/contrib/non-free, i386-hybrid image). 
+   main/contrib/non-free, i386-hybrid image).
 2. `iso/config/package-lists/kde.chroot` — a lean, hand-picked Plasma +
    app set (not the monolithic task package) matching the toolkit's
    debloat-first posture.
@@ -47,7 +47,7 @@ purpose.
 
 ## Installing / burning the ISO
 
-- **Live session:** boot the ISO, log in, run `sudo refractainstaller` 
+- **Live session:** boot the ISO, log in, run `sudo refractainstaller`
   from the live desktop for a full permanent install; the baked skel becomes
   every new user's starting home.
 - **USB/CDFS:** `sudo cp iso/.build/*.iso /dev/sdX` or
