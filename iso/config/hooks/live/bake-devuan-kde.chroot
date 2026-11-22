@@ -28,6 +28,6 @@ DEVMKDE_ASSUME_YES=1 DEVMKDE_ISO_BUILD=1 DEVMKDE_SKIP_APT_UPDATE=1 \
 
 echo "bake: exporting user config to /etc/skel"
 DEVMKDE_ASSUME_YES=1 DEVMKDE_ISO_BUILD=1 DEVMKDE_SKIP_APT_UPDATE=1 \
-    ./scripts/exportToSkel.sh || true
+    ./scripts/52-exportToSkel.sh || true
 
 echo "bake: done"

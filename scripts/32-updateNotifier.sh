@@ -72,6 +72,13 @@ fi
 COUNT=$(apt list --upgradable 2>/dev/null | grep -c '\[upgradable' || true)
 
 if [ "${COUNT:-0}" -gt 0 ]; then
+    PID=$(pgrep -u "$(id -un)" plasmashell 2>/dev/null | head -n1)
+    if [ -n "$PID" ] && [ -r "/proc/$PID/environ" ]; then
+        export DISPLAY="$(tr '\0' '\n' < "/proc/$PID/environ" | sed -n 's/^DISPLAY=//p' | head -n1)"
+        export DBUS_SESSION_BUS_ADDRESS="$(tr '\0' '\n' < "/proc/$PID/environ" | sed -n 's/^DBUS_SESSION_BUS_ADDRESS=//p' | head -n1)"
+    fi
+    export DISPLAY="${DISPLAY:-:0}"
+    export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=/run/user/$(id -u)/bus}"
     notify-send -i software-update-available \
         "Updates available" \
         "${COUNT} package(s) can be upgraded. Open Synaptic or run: apt full-upgrade" \
@@ -92,14 +99,14 @@ if ask "Install a cron job to check for updates twice daily (09:00 and 18:00)?";
     ( crontab -l 2>/dev/null | grep -vF "$CHECKER" | grep -vF "$CRON_MARKER" ) > "$NEW_CRON" || true
     {
         echo "$CRON_MARKER"
-        echo "0 9,18 * * * DISPLAY=:0 $CHECKER >/dev/null 2>&1"
+        echo "0 9,18 * * * $CHECKER >/dev/null 2>&1"
     } >> "$NEW_CRON"
 
     if crontab "$NEW_CRON"; then
         log_ok "Cron job installed (runs at 09:00 and 18:00 daily)."
     else
         log_err "Failed to install the cron job — you can add it manually with 'crontab -e':"
-        echo "  0 9,18 * * * DISPLAY=:0 $CHECKER"
+        echo "  0 9,18 * * * $CHECKER"
     fi
     rm -f "$NEW_CRON"
 

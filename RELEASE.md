@@ -130,15 +130,14 @@ and says so, instead of writing keys nothing reads.
 
 ### Theming
 - Palettes live in `themes/palettes.sh` as `palette_<id>()` functions; templates in
-  `themes/_base/tpl/`. 12 palettes ship in-tree — `graphite-amber` (default),
-  `graphite-amber-cool`, `graphite-amber-light`; legacy/optional: `darkmatter`,
-  `darkmatter-orange`, `moe-dark`, `nord`, `dracula`, `tokyo-night`, `gruvbox`,
-  `solarized`, `otto`.
+  `themes/_base/tpl/`. 12 palettes ship in-tree — the Graphite Amber family
+  (default plus cool and light variants) and legacy options that remain
+  available in the interactive picker.
 - `14-plasmaTheme.sh` renders the selected palette into a Plasma 6 Global
   Theme (`contents/colors` is a **real copy, not a symlink** — Plasma 6
   kpackages do not support one there), Konsole profile, accent, icon theme and
   generated wallpaper.
-- **`moe-dark` (Moe Dark)** installs the real **Moe v2.6** Global Theme from a
+- **Optional external theme integration** installs the real **Moe v2.6** Global Theme from a
   pinned mirror through `scripts/lib/moe.sh`, verified by SHA256 at download
   time and sanitised before install: upstream's `contents/defaults` are reduced
   to the engine's own plus the Breeze task-switcher entries, and the components
@@ -153,24 +152,25 @@ and says so, instead of writing keys nothing reads.
   `ColorScheme` at all, so the next login came up on Plasma's default scheme with
   every generated colour reverted and nothing logged an error. The keys now go
   through `ini_set_key` (edit, then read back) and are re-asserted as the last
-  thing `apply_palette` does — after the palette-specific Moe/Otto packages.
-- **`otto` (OttoRed)** recolours an installed Otto theme through
-  `scripts/lib/otto.sh`. Otto itself is not bundled and cannot be installed by
-  a script: `store.kde.org` is behind an Anubis challenge, so it is a
-  Discover/GUI step. With Otto absent the palette still applies standalone and
-  reports what it could not find.
-  - Recolours from copies, never in place: Global Theme → `OttoRed` with
-    `contents/layouts/` and `contents/widgets/` stripped (shipping layouts in
-    a Global Theme replaces the panel and would undo step 47), Kvantum `.conf`
-    across all four colour notations, and Konsole section-aware.
+  thing `apply_palette` does — after the palette-specific external packages.
+- **Optional external theme integration** recolours an installed external
+  theme through its palette helper. The external theme is not bundled and
+  cannot be installed by a script: `store.kde.org` is behind an Anubis
+  challenge, so it is a Discover/GUI step. With that theme absent the palette
+  still applies standalone and reports what it could not find.
+  - Recolours from copies, never in place: Global Theme → a generated
+    look-and-feel directory with `contents/layouts/` and `contents/widgets/`
+    stripped (shipping layouts in a Global Theme replaces the panel and would
+    undo step 47), Kvantum `.conf` across all four colour notations, and
+    Konsole section-aware.
   - **Kvantum SVGs are copied untouched** — recolouring Qt's SVG state cache
     produces a half-tinted theme, and Kvantum rebuilds it.
   - Every generated directory carries a `.devmkde-generated` marker and
     discovery skips it. Without the marker a rerun finds its own output: the
-    generated wrapper declares the name `Otto Red`, so the second apply
-    reported "Otto Global Theme applied" on a machine with no Otto, and the
+    generated wrapper uses the palette's name, so the second apply reports an
+    already-applied external theme on a machine that never had one, and the
     Kvantum copy's id ends in the palette name, so each run appended another
-    suffix (`Otto-Dark-OttoRed`, `Otto-Dark-OttoRed-OttoRed`, …).
+    suffix.
   - The generated wallpaper carries no ImageMagick contrast curve:
     `-function polynomial 6,-5,1` maps 0→1 and 1→2, which on a near-black
     palette does not add contrast but inverts the image into the highlights

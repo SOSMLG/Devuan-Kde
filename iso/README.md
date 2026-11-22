@@ -34,7 +34,7 @@ purpose.
    app set (not the monolithic task package) matching the toolkit's
    debloat-first posture.
 3. `iso/config/hooks/live/bake-devuan-kde.chroot` — runs the toolkit's own
-   `run.sh --phase core` + `scripts/exportToSkel.sh` **inside the chroot**
+   `run.sh --phase core` + `scripts/52-exportToSkel.sh` **inside the chroot**
    with `DEVMKDE_ASSUME_YES=1 DEVMKDE_ISO_BUILD=1`, so prompts are auto-
    answered and root-only helpers tolerate a plain-root build chroot. The
    resulting per-user config is exported to `/etc/skel` for every future

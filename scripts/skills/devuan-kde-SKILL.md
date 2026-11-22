@@ -109,10 +109,9 @@ issues on this system:
   `.colors` file, and the kdeglobals accent. `applyThemes.sh` picks a
   palette; the current one is in
   `~/.local/state/devuan-kde-setup/current-theme`. Kit: **12 palettes** —
-  graphite-amber (default), graphite-amber-cool, graphite-amber-light,
-  darkmatter, darkmatter-orange, moe-dark, nord, dracula, tokyo-night, gruvbox,
-  solarized, otto. Keep `14-plasmaTheme.sh` and
-  `46-applyThemes.sh` agreeing on the default; consistency test 5b fails the
+  the Graphite Amber family plus legacy options in the picker. Keep
+  `14-plasmaTheme.sh` and `46-applyThemes.sh` agreeing on the default;
+  consistency test 5b fails the
   build if they drift.
   - The state path must be resolved **lazily** (`theme_state_dir`), never at
     source time: tests and sandboxes export `XDG_STATE_HOME` *after* sourcing
@@ -127,21 +126,21 @@ issues on this system:
   palette-specific package, through `ini_set_key` (which reads the value back).
   `kwriteconfig6` exits 0 while writing nothing for these keys, so its exit code
   is not evidence.
-- **Otto integration:** `scripts/lib/otto.sh`, invoked by the theme engine only
-  for `PALETTE_ID=otto`. Otto itself is not bundled — `store.kde.org` is behind
-  Anubis, so it is a Discover/GUI install. Recolours *copies*, never the
-  installed package: Global Theme (minus `contents/layouts/` and
-  `contents/widgets/`, which would otherwise replace the panel), Kvantum `.conf`
-  across all four colour notations with **SVGs left alone**, Konsole sections,
-  and the decoration block in `contents/defaults`.
+- **External theme integration:** the optional helper is invoked by the theme
+  engine only for those legacy palette IDs. The external theme itself is not
+  bundled — `store.kde.org` is behind Anubis, so it is a Discover/GUI install.
+  Recolours *copies*, never the installed package: Global Theme (minus
+  `contents/layouts/` and `contents/widgets/`, which would otherwise replace
+  the panel), Kvantum `.conf` across all four colour notations with **SVGs left
+  alone**, Konsole sections, and the decoration block in `contents/defaults`.
   - The marker filename is defined ONCE, as `DEVMKDE_GENERATED_MARKER` in
     `scripts/lib/common.sh` — three modules write or read it, and a divergence
     makes a generated wrapper look like the upstream theme it came from.
   - Every generated directory gets a `.devmkde-generated` marker and discovery
-    skips marked or name-matched output. This is not optional bookkeeping: the
-    generated wrapper declares the name `Otto Red`, so without it a rerun finds
-    its own output as the "installed Otto", and the Kvantum copy's id ends in
-    the palette name, so each run appends another suffix.
+    skips marked or name-matched output. This is not optional bookkeeping:
+    without it a rerun finds its own generated output as the "installed"
+    external theme, and the Kvantum copy's id ends in the palette name, so each
+    run appends another suffix.
   - `contents/colors` is a **real copy**, never a symlink — same rule as
     `apply_global_theme`; Plasma 6 kpackages do not support one there.
   - No `-function polynomial` on the generated wallpaper: `6,-5,1` maps 0→1 and

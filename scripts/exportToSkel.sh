@@ -90,7 +90,10 @@ for src in "${CANDIDATES[@]}"; do
 
     if [ "$MODE" = "copy" ]; then
         mkdir -p "$(dirname "$dest")"
-        if cp -r "$src" "$dest"; then
+        if [ "$FORCE" -eq 1 ] && [ -e "$dest" ]; then
+            rm -rf -- "$dest"
+        fi
+        if cp -r -- "$src" "$dest"; then
             log_ok "  → $dest"
             copied=$((copied + 1))
         else
