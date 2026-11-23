@@ -24,7 +24,7 @@ DEBIAN_FRONTEND=noninteractive apt-get update -y
 echo "bake: running toolkit core phase"
 cd "$TK"
 DEVMKDE_ASSUME_YES=1 DEVMKDE_ISO_BUILD=1 DEVMKDE_SKIP_APT_UPDATE=1 \
-    ./run.sh --phase core || true
+    ./install.sh --phase core || true
 
 echo "bake: exporting user config to /etc/skel"
 DEVMKDE_ASSUME_YES=1 DEVMKDE_ISO_BUILD=1 DEVMKDE_SKIP_APT_UPDATE=1 \
