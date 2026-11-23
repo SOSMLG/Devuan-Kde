@@ -34,10 +34,10 @@ CYAN="\033[0;36m"
 RESET="\033[0m"
 
 # --- Directory setup ---
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 SCRIPTS_DIR="$SCRIPT_DIR/scripts"
 
-# run.sh never sources scripts/lib/common.sh so it stays usable even when a
+# the runner never sources scripts/lib/common.sh so it stays usable even when a
 # script's lib is broken mid-refactor; it keeps a local priv() with the same
 # contract as the shared helper: sudo first, doas fallback, DEVMKDE_PRIV wins.
 priv() {
@@ -127,7 +127,7 @@ done
 # must land in the real user's $HOME, not /root. Scripts escalate
 # themselves for the bits that need it.
 if [ "$(id -u)" -eq 0 ] && [ -z "${SUDO_USER:-}" ]; then
-    echo -e "${RED}Please run this as your normal user, not as root / sudo bash run.sh.${RESET}"
+    echo -e "${RED}Please run this as your normal user, not as root / sudo bash install.sh.${RESET}"
     echo -e "${YELLOW}Each script will escalate itself for the parts that need it.${RESET}"
     exit 1
 fi
@@ -211,11 +211,11 @@ if [ "$DO_LIST" -eq 1 ] || [ "$DO_LIST_UTILS" -eq 1 ]; then
     if [ "$DO_LIST_UTILS" -eq 1 ]; then
         echo -e "Run one by hand: ${CYAN}bash scripts/50-configBackup.sh backup${RESET}"
     else
-        echo -e "Run everything:   ${CYAN}./run.sh --full${RESET}"
-        echo -e "Pick a subset:    ${CYAN}./run.sh --only kdeDebloat,usefulApps${RESET}"
-        echo -e "Pick a phase:     ${CYAN}./run.sh --phase core   (phases: core, sysmgmt, optional)${RESET}"
-        echo -e "Fully unattended: ${CYAN}./run.sh --yes --full${RESET}"
-        echo -e "Manual utilities: ${CYAN}./run.sh --list-utilities${RESET}"
+        echo -e "Run everything:   ${CYAN}./install.sh --full${RESET}"
+        echo -e "Pick a subset:    ${CYAN}./install.sh --only kdeDebloat,usefulApps${RESET}"
+        echo -e "Pick a phase:     ${CYAN}./install.sh --phase core   (phases: core, sysmgmt, optional)${RESET}"
+        echo -e "Fully unattended: ${CYAN}./install.sh --yes --full${RESET}"
+        echo -e "Manual utilities: ${CYAN}./install.sh --list-utilities${RESET}"
     fi
     exit 0
 fi

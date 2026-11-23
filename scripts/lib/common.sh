@@ -9,7 +9,7 @@
 #
 # Environment variables honored (all optional):
 #   DEVMKDE_ASSUME_YES=1    ask() answers with its default instead of prompting
-#   DEVMKDE_SKIP_APT_UPDATE=1  apt_update() is a no-op (run.sh updates once)
+#   DEVMKDE_SKIP_APT_UPDATE=1  apt_update() is a no-op (install.sh updates once)
 #   DEVMKDE_ISO_BUILD=1     require_not_root()/require_priv() pass (ISO chroot)
 #   DEVMKDE_PRIV=sudo|doas  force the escalation helper instead of auto-detect
 # =======================================================
@@ -158,7 +158,7 @@ run_as_user() {
 }
 
 # ask() — "Y/n" (default Y) or "y/N" (default N) prompt. With
-# DEVMKDE_ASSUME_YES set (run.sh --yes, or ISO build hooks), the default is
+# DEVMKDE_ASSUME_YES set (install.sh --yes, or ISO build hooks), the default is
 # taken without prompting so the toolkit can run unattended.
 ask() {
     local prompt="$1" default="${2:-Y}" reply
@@ -245,7 +245,7 @@ install_deb_file() {
     fi
 }
 
-# apt_update — refresh package lists exactly once per run. run.sh updates
+# apt_update — refresh package lists exactly once per run. install.sh updates
 # once up front and exports DEVMKDE_SKIP_APT_UPDATE=1 so the per-script
 # refreshes are no-ops; standalone runs still refresh here. Returns
 # apt-get update's exit code so callers can abort if they want to.
@@ -620,7 +620,8 @@ global_shortcut_bound() {
 # This writes the action mapping in the format KGlobalAccel expects.
 # Idempotent - overwrites existing binding for the action.
 bind_kwin_action() {
-    local action="$1" key="$2" name="${3:-$action}"
+    local action="$1" key="$2"
+    local name="${3:-$action}"
     [ -n "$KWRITECONFIG" ] || {
         log_err "bind_kwin_action: no kwriteconfig found — is this a KDE Plasma session?"
         return 1
@@ -642,7 +643,7 @@ kwin_action_bound() {
 #
 # WHY THIS IS NEEDED: plasmashell gets *restarted* by anything that applies a
 # color scheme or a Global Theme (46-applyThemes.sh does both). On a full
-# run.sh pass the steps are ordered by plain `find -name '[0-9]*.sh' | sort`,
+# install.sh pass the steps are ordered by plain `find -name '[0-9]*.sh' | sort`,
 # so the step right after the theme step fires while plasmashell is still
 # coming back up. D-Bus then answers
 #

@@ -675,7 +675,7 @@ else
 fi
 
 # The theme step (46-applyThemes.sh) restarts plasmashell by applying the
-# color scheme and Global Theme, and run.sh orders steps by filename, so we
+# color scheme and Global Theme, and install.sh orders steps by filename, so we
 # routinely arrive here while plasmashell is still coming back up. Calling
 # evaluateScript in that window makes qdbus report
 #   Cannot find 'org.kde.PlasmaShell.evaluateScript' in object /PlasmaShell

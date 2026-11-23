@@ -98,7 +98,8 @@ moe_cache_dir() {
 MOE_FETCHED=""
 moe_fetch() {
     local archive="$1" want="$2"
-    local out="$(moe_cache_dir)/$archive"
+    local out
+    out="$(moe_cache_dir)/$archive"
     MOE_FETCHED=""
     [ -n "$want" ] || { log_err "moe_fetch: no SHA256 pinned for $archive"; return 1; }
     mkdir -p "$(moe_cache_dir)" || return 1

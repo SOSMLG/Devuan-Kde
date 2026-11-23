@@ -96,7 +96,7 @@ issues on this system:
   `apt_update`/`install_pkgs`/`purge_if_installed`, `verify_download`/
   `sha256_verify`, `ask`, `kwrite_user`, `log_*`). `$KWRITECONFIG` is
   resolved once there.
-- `run.sh` drives scripts in order. Its `SCRIPTS` array uses the 4-field
+- `install.sh` drives scripts in order. Its `SCRIPTS` array uses the 4-field
   format `script|desc|default(Y/N)|section`, sections are `core`,
   `sysmgmt`, `optional`, addressed with `--phase <section>` / `--full`;
   `install.sh` wraps it. Env honored: `DEVMKDE_ASSUME_YES=1` (prompts take

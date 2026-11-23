@@ -83,7 +83,7 @@ fi
 # ---------------------------------------------------------------------------
 # 5. Kate, Konqueror, Dragon Player — Dolphin and VLC are already covered
 #    (Dolphin ships with the base Plasma desktop; VLC is installed by
-#    usefulApps.sh), but VSCodium is optional/off-by-default in run.sh —
+#    usefulApps.sh), but VSCodium is optional/off-by-default in install.sh —
 #    so removing Kate here without installing something in its place would
 #    leave you with zero plain-text editor if you don't separately opt into
 #    VSCodium. FeatherPad fills that gap: genuinely lightweight (~450KB,

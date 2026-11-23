@@ -11,28 +11,28 @@ polishes an existing kde plasma install on devuan 6 or debian 13 with codecs, fi
 | **starting point** | kde is already installed by the distro. this toolkit does not install it. |
 | **adds** | codecs, wifi and bluetooth firmware, a software center, printing, a firewall panel and snapshots. |
 | **theme** | global theme, icons, konsole, plymouth, grub and sddm all follow one palette. |
-| **verify** | `./install.sh` runs every step then verifies. `./run.sh --verify` rechecks state. |
+| **verify** | `./install.sh` runs every step then verifies. `./install.sh --verify` rechecks state. |
 
 ## Quick start
 
 ```bash
-./run.sh                  # interactive, asks before each step
-./run.sh --list           # see every step, its phase, and its default
-./run.sh --only 14,27     # just the theme and desktop polish
-./run.sh --phase sysmgmt  # only the system-management phase
-./run.sh --full --yes     # unattended, every step at its default
+./install.sh                  # interactive, asks before each step
+./install.sh --list           # see every step, its phase, and its default
+./install.sh --only 14,27     # just the theme and desktop polish
+./install.sh --phase sysmgmt  # only the system-management phase
+./install.sh --full --yes     # unattended, every step at its default
 ./install.sh              # unattended wrapper: --full --yes, then --verify
 ```
 
 Run it as your **normal user**, never as root and never via
-`sudo bash run.sh`. The scripts escalate only the individual commands that
+`sudo bash install.sh`. The scripts escalate only the individual commands that
 need it, through a helper that prefers `sudo` and falls back to `doas`.
 
 The three standalone utilities (backups, maintenance, skel export) are never
 run by the runner. Invoke them directly:
 
 ```bash
-./run.sh --list-utilities
+./install.sh --list-utilities
 bash scripts/50-configBackup.sh backup
 bash scripts/51-systemMaintenance.sh
 ```
@@ -49,14 +49,14 @@ bash scripts/51-systemMaintenance.sh
 > `27-fancyPlasma.sh` skips the X11-only window-management tweaks under Wayland
 > and says so instead of writing keys nothing reads, and `47-plasmaPanel.sh`
 > builds its layout through the Plasma 6 D-Bus scripting API, which is
-> identical on both. `run.sh` prints the Plasma 6.8 Wayland-only migration note
+> identical on both. `install.sh` prints the Plasma 6.8 Wayland-only migration note
 > when it finds itself on X11.
 
 ## Layout
 
 ```
 .
-├── run.sh                  # the runner — start here
+├── install.sh                  # the runner — start here
 ├── install.sh              # unattended wrapper (--full --yes --verify)
 ├── Makefile                # release, archive and listing targets
 ├── VERSION / RELEASE.md    # release metadata
@@ -273,7 +273,7 @@ minimal install too.
 Create `scripts/NN-camelCase.sh` with the three metadata headers, source
 `scripts/lib/common.sh` for `priv`/`install_pkgs`/`ask`/`log_*`, add it to the
 step table in this README, then check it with `bash -n` and
-`bash run.sh --list`.
+`bash install.sh --list`.
 
 ## Safety notes
 

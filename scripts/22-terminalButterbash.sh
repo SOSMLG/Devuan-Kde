@@ -150,11 +150,11 @@ link_tool bat batcat
 # are about to write, so a re-run does not litter a backup per invocation.
 if [ -d "$BB_CONFIG_DIR" ]; then
     if diff -rq "$BB_SRC/bash" "$BB_CONFIG_DIR" >/dev/null 2>&1; then
-        log_ok "~/.config/bash already matches upstream — left alone."
+        log_ok "$HOME/.config/bash already matches upstream - left alone."
     else
         BB_BACKUP="$HOME/.config/bash.backup.$(date +%Y%m%d-%H%M%S)"
         if cp -a "$BB_CONFIG_DIR" "$BB_BACKUP"; then
-            log_warn "Existing ~/.config/bash differs — backed up to $BB_BACKUP"
+            log_warn "Existing $HOME/.config/bash differs - backed up to $BB_BACKUP"
         else
             log_err "Could not back up $BB_CONFIG_DIR — aborting rather than overwrite it."
             exit 1
