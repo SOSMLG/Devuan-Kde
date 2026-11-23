@@ -1,7 +1,7 @@
 # Devuan KDE - Makefile
 #
 # Small convenience targets for release checks, step listings and archives.
-# The installer itself is driven by ./run.sh.
+# The installer itself is driven by ./install.sh.
 
 SHELL   := /usr/bin/env bash
 REPO    := $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
@@ -21,7 +21,7 @@ help:
 	@echo "  make list-utilities     list standalone utilities"
 	@echo "  make version            print VERSION"
 	@echo
-	@echo "The scripts themselves are NOT driven by make - use ./run.sh --help"
+	@echo "The scripts themselves are NOT driven by make - use ./install.sh --help"
 
 ## version: print the current version
 version:
@@ -33,11 +33,11 @@ count:
 
 ## release-preflight: checks before a tag
 release-preflight:
-	@bash -n $(REPO)/run.sh $(REPO)/install.sh
+	@bash -n $(REPO)/install.sh $(REPO)/scripts/lib/runner.sh
 	@test -f $(REPO)/VERSION || { echo "FAIL: no VERSION"; exit 1; }
 	@grep -q '$(VERSION)' $(REPO)/RELEASE.md || { echo "FAIL: RELEASE.md does not mention $(VERSION)"; exit 1; }
-	@bash $(REPO)/run.sh --list >/dev/null
-	@bash $(REPO)/run.sh --list-utilities >/dev/null
+	@bash $(REPO)/install.sh --list >/dev/null
+	@bash $(REPO)/install.sh --list-utilities >/dev/null
 	@echo "preflight OK for $(VERSION)"
 
 ## dist: build the uploadable archive in dist/ (no network, no root)
@@ -62,11 +62,11 @@ dist:
 
 ## list: list runnable steps
 list:
-	@bash $(REPO)/run.sh --list
+	@bash $(REPO)/install.sh --list
 
 ## list-utilities: list standalone utilities
 list-utilities:
-	@bash $(REPO)/run.sh --list-utilities
+	@bash $(REPO)/install.sh --list-utilities
 
 ## clean: remove generated scratch files
 clean:

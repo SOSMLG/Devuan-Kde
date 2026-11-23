@@ -312,7 +312,7 @@ show_menu() {
     echo ""
     local choice
     if [ -n "${DEVMKDE_ASSUME_YES:-}" ]; then
-        # Unattended (run.sh --yes / ISO build): prefer ESR (this project's browser),
+        # Unattended (install.sh --yes / ISO build): prefer ESR (this project's browser),
         # falling back to Latest when only that is installed.
         for i in "${!options[@]}"; do
             if [ "${options[$i]}" = "firefox-esr" ]; then

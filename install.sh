@@ -12,9 +12,9 @@
 #   ./install.sh --only a,b  just those steps (unattended)
 #   ./install.sh --list      show what's included, then exit
 #
-# Anything else is passed through to run.sh, so the full runner's flags work
-# here too — notably --list-utilities, --phase and --no-update. Try --help
-# here for the common subset, or ./run.sh --help for everything. You run this as
+# Anything else is passed through to the step runner, so the full runner's
+# flags work here too - notably --list-utilities, --phase and --no-update.
+# Try --help here for the common subset. You run this as
 # your NORMAL user; the scripts escalate themselves (priv() — sudo first,
 # doas fallback) as needed.
 # ==========================================
@@ -45,7 +45,7 @@ install.sh — one command, everything, unattended (Devuan/Debian + KDE Plasma t
   ./install.sh --phase optional  unattended, one phase only
   ./install.sh --no-update       unattended, skip every apt-get update
 
-  Anything not listed above is passed straight to run.sh; see ./run.sh --help.
+  Anything not listed above is passed straight to the step runner.
 
   Escalation is sudo-first (doas fallback); set DEVMKDE_PRIV=doas to force doas.
   Other env vars: DEVMKDE_SKIP_APT_UPDATE=1, DEVMKDE_ISO_BUILD=1.
@@ -67,4 +67,4 @@ else
 fi
 [ "$NO_VERIFY" -eq 0 ] && RUN_EXTRA+=(--verify)
 
-exec bash "$SCRIPT_DIR/run.sh" "${PASSTHRU[@]}" "${RUN_EXTRA[@]}"
+exec bash "$SCRIPT_DIR/scripts/lib/runner.sh" "${PASSTHRU[@]}" "${RUN_EXTRA[@]}"

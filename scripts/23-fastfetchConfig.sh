@@ -95,7 +95,8 @@ install_configs() {
         # "switch anyway" line that copied the backup over itself. So: back up,
         # then actually offer the replacement, and print real commands for both
         # directions (new default vs. your tuned copy).
-        local bak="$FF_DIR/config.jsonc.bak.$(date +%Y%m%d-%H%M%S)"
+        local bak
+        bak="$FF_DIR/config.jsonc.bak.$(date +%Y%m%d-%H%M%S)"
         if ! cp -f "$FF_DIR/config.jsonc" "$bak"; then
             log_warn "Existing config.jsonc could NOT be backed up — leaving it untouched."
             return 0

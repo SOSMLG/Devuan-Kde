@@ -3,7 +3,7 @@
 # System Update — run this first
 # -------------------------------------------------------
 # The "update everything before you start" step, deliberately its own
-# script rather than baked silently into run.sh's startup, so it's still
+# script rather than baked silently into install.sh's startup, so it's still
 # just an ordinary y/N step you can skip if you'd rather update later or
 # on your own schedule.
 #

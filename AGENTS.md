@@ -7,11 +7,11 @@ Graphite Amber visual identity to Plasma, Konsole, LightDM/SDDM, GRUB and Plymou
 
 ## Entry points
 
-- `run.sh` discovers `scripts/[0-9][0-9]-*.sh`, groups them by phase, and
+- `install.sh` discovers `scripts/[0-9][0-9]-*.sh`, groups them by phase, and
   reads `# DEVMKDE_DESC:`, `# DEVMKDE_DEFAULT:` and `# DEVMKDE_PHASE:` headers.
 - `install.sh` is the unattended wrapper: `--full --yes`, then `--verify`.
 - `scripts/verifySetup.sh` is the read-only end-state audit. Run it after
-  changing a step. `run.sh --verify` wraps it.
+  changing a step. `install.sh --verify` wraps it.
 
 ## Conventions
 
@@ -31,4 +31,4 @@ Graphite Amber visual identity to Plasma, Konsole, LightDM/SDDM, GRUB and Plymou
 
 - `bash -n` on changed shell files.
 - `bash scripts/verifySetup.sh` on a target system.
-- `bash run.sh --list` and `bash run.sh --list-utilities` after adding scripts.
+- `bash install.sh --list` and `bash install.sh --list-utilities` after adding scripts.

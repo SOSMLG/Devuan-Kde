@@ -4,7 +4,7 @@
 # -------------------------------------------------------
 # One-pass check of the toolkit's expected end state:
 # group membership, key packages, fonts, Firefox user.js,
-# and enabled services. Designed to be run from run.sh
+# and enabled services. Designed to be run from install.sh
 # --verify after a run, or standalone at any time.
 #
 # Prints PASS/FAIL/WARN lines and exits non-zero if any
@@ -340,13 +340,13 @@ dir_exists "mousepoll.conf (touchpad fix)" "/etc/modprobe.d/mousepoll.conf" warn
 # report on a shell that had never been wired up: the config files were on
 # disk, the rc that loads them was not, and .bashrc never sourced either.
 if [ ! -d "$HOME/.config/bash" ]; then
-    report "ButterBash install" warn "no ~/.config/bash -- run 22-terminalButterbash.sh"
+    report "ButterBash install" warn "no $HOME/.config/bash -- run 22-terminalButterbash.sh"
 elif [ ! -f "$HOME/.config/butterbash/bashrc" ]; then
-    report "ButterBash install" warn "~/.config/bash exists but ~/.config/butterbash/bashrc is missing (partial install)"
+    report "ButterBash install" warn "$HOME/.config/bash exists but $HOME/.config/butterbash/bashrc is missing (partial install)"
 elif ! grep -qF "# >>> butterbash (devuan-kde-setup 22-terminalButterbash.sh) >>>" "$HOME/.bashrc" 2>/dev/null; then
     report "ButterBash install" warn "installed, but .bashrc has no butterbash block -- the shell will not load it"
 else
-    report "ButterBash install" ok "~/.config/bash + rc, wired into .bashrc"
+    report "ButterBash install" ok "$HOME/.config/bash + rc, wired into .bashrc"
 fi
 
 # fastfetch: the package alone says nothing about whether the Devuan config

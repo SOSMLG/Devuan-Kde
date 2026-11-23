@@ -184,6 +184,7 @@ if declare -f install_wallpaper_package >/dev/null 2>&1 \
         log_info "No source directory given -- skipping wallpaper package."
     else
         # Expand a leading ~ so the answer behaves the way it reads.
+        # shellcheck disable=SC2088  # literal ~ prefix, expanded by hand below
         case "$WP_SRC" in
             "~") WP_SRC="$HOME_DIR" ;;
             "~/"*) WP_SRC="$HOME_DIR/${WP_SRC#\~/}" ;;
